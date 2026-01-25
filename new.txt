@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>El Seibo Mission - Medical Ministry in the Dominican Republic</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: linear-gradient(135deg, #f0f4f8 0%, #e8eef3 100%);
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        header {
+            background: linear-gradient(135deg, #2c5aa0 0%, #1a3a6b 100%);
+            color: white;
+            padding: 1rem 0;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 20px;
+        }
+
+        .header-content {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .logo-container {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .logo {
+            width: 70px;
+            height: 70px;
+        }
+
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .tagline {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+
+        nav {
+            background: #1a3a6b;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        nav ul {
+            list-style: none;
+            display: flex;
+            flex-wrap: wrap;
+        }
+
+        nav li {
+            margin: 0;
+        }
+
+        nav a {
+            display: block;
+            color: white;
+            text-decoration: none;
+            padding: 1rem 1.5rem;
+            transition: background 0.3s;
+        }
+
+        nav a:hover, nav a.active {
+            background: #2c5aa0;
+        }
+
+        .hero {
+            background: linear-gradient(rgba(0,0,0,0.45), rgba(0,0,0,0.45)), 
+                        url('https://images.unsplash.com/photo-1625246333195-78d9c38ad449?w=1200&q=80');
+            background-size: cover;
+            background-position: center;
+            color: white;
+            text-align: center;
+            padding: 4rem 2rem;
+        }
+
+        .hero h2 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        section {
+            padding: 3rem 2rem;
+            display: none;
+        }
+
+        section.active {
+            display: block;
+        }
+
+        .section-title {
+            font-size: 2rem;
+            color: #2c5aa0;
+            margin-bottom: 1.5rem;
+            border-bottom: 3px solid #2c5aa0;
+            padding-bottom: 0.5rem;
+        }
+
+        .services-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .service-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .service-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+        }
+
+        .service-card h3 {
+            color: #2c5aa0;
+            margin-bottom: 1rem;
+        }
+
+        .login-form {
+            max-width: 400px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 600;
+        }
+
+        input[type="password"], input[type="file"], input[type="text"] {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 1rem;
+        }
+
+        button {
+            background: #2c5aa0;
+            color: white;
+            padding: 0.75rem 2rem;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 1rem;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #1a3a6b;
+        }
+
+        .gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin-top: 2rem;
+        }
+
+        .gallery-item {
+            position: relative;
+            overflow: hidden;
+            border-radius: 8px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .gallery-item img {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            transition: transform 0.3s;
+        }
+
+        .gallery-item:hover img {
+            transform: scale(1.1);
+        }
+
+        .upload-area {
+            border: 2px dashed #2c5aa0;
+            border-radius: 8px;
+            padding: 2rem;
+            text-align: center;
+            margin: 2rem 0;
+        }
+
+        footer {
+            background: #1a3a6b;
+            color: white;
+            text-align: center;
+            padding: 2rem;
+            margin-top: 3rem;
+        }
+
+        .alert {
+            padding: 1rem;
+            margin: 1rem 0;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .alert.success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .locked {
+            text-align: center;
+            padding: 3rem;
+        }
+
+        .locked i {
+            font-size: 3rem;
+            color: #2c5aa0;
+            margin-bottom: 1rem;
+        }
+
+        .sponsor-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+
+        .sponsor-card {
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .sponsor-logo {
+            width: 150px;
+            height: 150px;
+            margin: 0 auto 1rem;
+            background: #f0f0f0;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 3rem;
+        }
+
+        .donation-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+
+        .donation-card {
+            background: linear-gradient(135deg, #2c5aa0 0%, #4a90e2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+
+        .donation-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 20px rgba(44, 90, 160, 0.3);
+        }
+
+        .donation-card h3 {
+            color: white;
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .donation-card p {
+            font-size: 0.9rem;
+        }
+
+        .custom-donation {
+            max-width: 400px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .impact-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 2rem;
+            margin: 3rem 0;
+            text-align: center;
+        }
+
+        .stat-item {
+            padding: 1.5rem;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            color: #2c5aa0;
+        }
+
+        .stat-label {
+            color: #666;
+            margin-top: 0.5rem;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <div class="header-content">
+                <div class="logo-container">
+                    <svg class="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                        <!-- Outer circle -->
+                        <circle cx="50" cy="50" r="48" fill="#ffffff" stroke="#2c5aa0" stroke-width="2"/>
+                        
+                        <!-- Medical cross in blue -->
+                        <rect x="45" y="25" width="10" height="50" fill="#2c5aa0" rx="2"/>
+                        <rect x="25" y="45" width="50" height="10" fill="#2c5aa0" rx="2"/>
+                        
+                        <!-- Heart symbol overlapping the cross -->
+                        <path d="M 50 42 C 50 42, 45 35, 40 35 C 35 35, 32 38, 32 42 C 32 48, 50 58, 50 58 C 50 58, 68 48, 68 42 C 68 38, 65 35, 60 35 C 55 35, 50 42, 50 42 Z" fill="#e74c3c" opacity="0.9"/>
+                        
+                        <!-- Helping hands at bottom -->
+                        <path d="M 30 70 Q 35 75, 40 70 L 38 68 Q 35 71, 32 68 Z" fill="#f39c12"/>
+                        <path d="M 60 70 Q 65 75, 70 70 L 68 68 Q 65 71, 62 68 Z" fill="#f39c12"/>
+                        
+                        <!-- Dominican Republic flag colors accent (small) -->
+                        <rect x="20" y="20" width="3" height="8" fill="#002d62"/>
+                        <rect x="20" y="28" width="3" height="8" fill="#ce1126"/>
+                        
+                        <!-- Text curve -->
+                        <path id="curve" d="M 15,50 A 35,35 0 0,1 85,50" fill="none"/>
+                        <text font-size="8" fill="#2c5aa0" font-weight="bold">
+                            <textPath href="#curve" startOffset="50%" text-anchor="middle">
+                                SERVING WITH LOVE
+                            </textPath>
+                        </text>
+                    </svg>
+                    <div>
+                        <h1>El Seibo Mission</h1>
+                        <p class="tagline">Serving with compassion in the Dominican Republic</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="#home" class="nav-link active" onclick="showSection('home')">Home</a></li>
+                <li><a href="#about" class="nav-link" onclick="showSection('about')">About</a></li>
+                <li><a href="#services" class="nav-link" onclick="showSection('services')">Services</a></li>
+                <li><a href="#images" class="nav-link" onclick="showSection('images')">Images</a></li>
+                <li><a href="#guest-upload" class="nav-link" onclick="showSection('guest-upload')">Guest Upload</a></li>
+                <li><a href="#sponsors" class="nav-link" onclick="showSection('sponsors')">Sponsors</a></li>
+                <li><a href="#donate" class="nav-link" onclick="showSection('donate')">Donate</a></li>
+                <li><a href="#contact" class="nav-link" onclick="showSection('contact')">Contact</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <section id="home" class="active">
+        <div class="hero">
+            <h2>Bringing Hope and Healing to El Seibo</h2>
+            <p>A medical mission dedicated to serving the communities of El Seibo, Dominican Republic</p>
+        </div>
+        <div class="container" style="margin-top: 2rem;">
+            <h3 style="text-align: center; margin-bottom: 1rem;">Welcome to El Seibo Mission</h3>
+            <p style="text-align: center; max-width: 800px; margin: 0 auto;">
+                Our mission is to provide essential medical care, hope, and compassion to the underserved communities 
+                in and around El Seibo, Dominican Republic. Through our dedicated team of volunteers and healthcare 
+                professionals, we strive to make a lasting impact on the lives of those we serve.
+            </p>
+        </div>
+    </section>
+
+    <section id="about">
+        <div class="container">
+            <h2 class="section-title">About El Seibo Mission</h2>
+            
+            <h3 style="color: #2c5aa0; margin-top: 2rem;">Our History</h3>
+            <p style="margin-bottom: 1.5rem;">
+                El Seibo Mission serves the communities in and around El Seibo, Dominican Republic, a region with a rich 
+                but challenging history. The area has long been associated with the sugar industry, where many Haitian 
+                migrants and their descendants have worked in the sugarcane fields under difficult conditions.
+            </p>
+
+            <h3 style="color: #2c5aa0; margin-top: 2rem;">The Bateys of El Seibo</h3>
+            <p style="margin-bottom: 1.5rem;">
+                El Seibo province is home to many of the approximately 425 batey communities that exist across the Dominican Republic. These settlements house around 200,000 people total across the country, with significant concentrations in El Seibo and neighboring provinces. The word "batey" has roots in the Taíno language, referring to a yard or open space, but today these communities represent some of the most impoverished settlements in the entire nation.
+            </p>
+            <p style="margin-bottom: 1.5rem;">
+                The bateys began forming in the early 20th century when large numbers of Haitians migrated to the Dominican Republic for seasonal sugarcane work. What were meant to be temporary housing for migrant workers during harvest season became permanent settlements. In the mid-1960s, the Dominican government formalized these as company-owned towns—crude barracks surrounded by fencing and monitored by armed guards to prevent workers from leaving, essentially creating work camps.
+            </p>
+
+            <h3 style="color: #2c5aa0; margin-top: 2rem;">Daily Life in the Bateys</h3>
+            <p style="margin-bottom: 1.5rem;">
+                Housing in the bateys consists of rudimentary structures made of wood or corrugated metal, often with slatted wood walls, tin roofs, and dirt floors. Many homes house eight or more people in cramped conditions. Bateys traditionally have no running water, electricity, or cooking facilities.
+            </p>
+            <p style="margin-bottom: 1.5rem;">
+                83% of the population of the bateys lacks access to drinking water. In communities like Batey Nueve, residents share water from a free water tank, but the water is not treated, leading to widespread ingestion of contaminated water. Children suffer from diarrhea and vomiting due to non-chlorinated water. The only bathrooms are often outside homes, shared with the entire community.
+            </p>
+            <p style="margin-bottom: 1.5rem;">
+                Workers spend 12 hours a day, six days a week in the sugarcane fields, cutting heavy stalks by the metric ton. During the heyday of the Dominican sugar economy in the 1960s through 1980s, daily wages were barely enough to buy one meal a day—oftentimes cane cutters and their families had nothing to eat but the very cane they cut. Today, some workers still earn barely enough to afford a single meal per day for their families.
+            </p>
+
+            <h3 style="color: #2c5aa0; margin-top: 2rem;">Health Crisis in the Bateys</h3>
+            <p style="margin-bottom: 1.5rem;">
+                The health conditions in batey communities are among the worst in the Dominican Republic. Chronic malnutrition is highest in the bateys, and only 36% of children aged 18-29 months are fully vaccinated. HIV prevalence in the bateys stands at 3.2%, compared to the national level of 0.8%.
+            </p>
+            <p style="margin-bottom: 1.5rem;">
+                Families live in subpar conditions that compound the effects of contaminated drinking water and make it harder to maintain good hygiene. Water-borne diseases are normalized in these communities, with residents at constant risk of cholera, typhoid, and parasitic infections. Early pregnancy affects 34.9% of adolescents in the bateys, far above national averages.
+            </p>
+
+            <h3 style="color: #2c5aa0; margin-top: 2rem;">The Citizenship Crisis</h3>
+            <p style="margin-bottom: 1.5rem;">
+                Perhaps the most devastating aspect of batey life is the documentation crisis. The Constitution of the Dominican Republic does not extend citizenship to children born to non-naturalized Haitian parents. This means that children born in the Dominican Republic to Haitian workers—second, third, and even fourth generation residents—have no birth certificates or identity papers of any kind.
+            </p>
+            <p style="margin-bottom: 1.5rem;">
+                An overwhelming 85% of adolescents in the bateys lack civil status documentation and are therefore unable to access education, vocational training, employment opportunities, or healthcare offered outside of the bateys. This situation deepens the poverty and exclusion of these communities, making them easy targets for abuse and human rights violations.
+            </p>
+            <p style="margin-bottom: 1.5rem;">
+                The Dominican Republic has created a permanent underclass—a category of individuals that, in the eyes of the law, doesn't exist—they have no right to own property, no right to an education, no access to healthcare, and no right to vote. These families are condemned to generational poverty with no legal pathway out.
+            </p>
+
+            <h3 style="color: #2c5aa0; margin-top: 2rem;">Geographic and Social Isolation</h3>
+            <p style="margin-bottom: 1.5rem;">
+                Geographically and socially isolated, bateys lack basic healthcare, adequate water and sanitation, and access to education, while employment and income generation opportunities have grown increasingly scarce. Many bateys are located far from Dominican towns, creating physical barriers to accessing services even when documentation isn't an issue.
+            </p>
+            <p style="margin-bottom: 1.5rem;">
+                In the mid-1990s, when world markets switched from cane sugar to high-fructose corn syrup, the Dominican government was forced to privatize the sugar industry and close many struggling plantations. Without cane to cut, the already sparse economy of the bateys completely dried up. The armed guards and fences that once imprisoned workers disappeared, but families remained trapped by poverty, lack of documentation, and limited opportunities.
+            </p>
+
+            <h3 style="color: #2c5aa0; margin-top: 2rem;">Culture and Resilience</h3>
+            <p style="margin-bottom: 1.5rem;">
+                Despite these overwhelming challenges, there is a strong sense of community and resilience in the bateys, where people rely on each other for support, sharing resources and celebrating together during festivals and special occasions. The bateys pulse with a unique Afro-Dominican culture, blending African traditions, Dominican customs, and Haitian heritage.
+            </p>
+            <p style="margin-bottom: 1.5rem;">
+                Gaga, a vibrant form of music and dance linked to Holy Week celebrations, is particularly prominent in bateys. Religious syncretism is common, blending Catholicism with African spiritual beliefs. Many residents speak both Spanish and Kreyòl (Haitian Creole), maintaining connections to their Haitian heritage while navigating Dominican society.
+            </p>
+
+            <h3 style="color: #2c5aa0; margin-top: 2rem;">Our Mission</h3>
+            <p style="margin-bottom: 1.5rem;">
+                El Seibo Mission was founded to address these critical healthcare needs. We provide medical services, health 
+                education, and compassionate care to those who need it most. Our work focuses on:
+            </p>
+            <ul style="margin-left: 2rem; margin-bottom: 1.5rem;">
+                <li>Delivering primary healthcare to underserved batey communities</li>
+                <li>Providing preventive care and health education</li>
+                <li>Offering medical services regardless of documentation status or ability to pay</li>
+                <li>Building relationships and trust within the communities we serve</li>
+                <li>Partnering with local organizations to create sustainable healthcare solutions</li>
+            </ul>
+
+            <h3 style="color: #2c5aa0; margin-top: 2rem;">Our Impact</h3>
+            <p>
+                Through regular medical mission trips and ongoing partnerships, we've been able to serve thousands of 
+                patients, many of whom are Haitian migrants and their families who work or have worked in the sugarcane 
+                industry. We believe every person deserves access to quality healthcare and the dignity of compassionate 
+                medical treatment.
+            </p>
+        </div>
+    </section>
+
+    <section id="services">
+        <div class="container">
+            <h2 class="section-title">Our Services</h2>
+            <div class="services-grid">
+                <div class="service-card">
+                    <h3>Primary Medical Care</h3>
+                    <p>Comprehensive medical evaluations, treatment of acute and chronic conditions, health screenings, and ongoing medical support for all ages in the batey communities.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Nursing Home</h3>
+                    <p>Dedicated care facility providing compassionate medical care, daily assistance, and dignified living conditions for elderly residents in our community.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Elementary School</h3>
+                    <p>Educational programs for children in the batey communities, providing quality education, safe learning environment, and opportunities for a brighter future.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Food Distribution</h3>
+                    <p>Regular food distribution programs providing nutritious meals and essential food supplies to families in need throughout the El Seibo region.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Immigration Services</h3>
+                    <p>Assistance with documentation, legal support, and navigation of immigration processes to help community members obtain proper identification and legal status.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Dental Services</h3>
+                    <p>Basic dental care, cleanings, extractions, and oral health education to improve dental hygiene and overall health.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Pharmacy Services</h3>
+                    <p>Distribution of essential medications and supplements to treat diagnosed conditions and support ongoing health management.</p>
+                </div>
+                <div class="service-card">
+                    <h3>Vision Care</h3>
+                    <p>Eye examinations and distribution of reading glasses to improve quality of life and daily functioning.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="images">
+        <div class="container">
+            <div id="images-locked" class="locked">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+                <h2 class="section-title">Image Gallery - Password Protected</h2>
+                <p style="margin-bottom: 2rem;">Please enter the password to access the image gallery and upload features.</p>
+                
+                <div class="login-form">
+                    <div class="form-group">
+                        <label for="gallery-password">Password:</label>
+                        <input type="password" id="gallery-password" placeholder="Enter password">
+                    </div>
+                    <button onclick="unlockGallery()">Access Gallery</button>
+                    <div id="login-alert" class="alert"></div>
+                </div>
+            </div>
+
+            <div id="images-unlocked" style="display: none;">
+                <h2 class="section-title">Image Gallery</h2>
+                
+                <div class="upload-area">
+                    <h3>Upload Images</h3>
+                    <p style="margin: 1rem 0;">Share photos from mission trips and community activities</p>
+                    <div class="form-group">
+                        <input type="file" id="image-upload" accept="image/*" multiple>
+                    </div>
+                    <button onclick="uploadImages()">Upload Photos</button>
+                    <div id="upload-alert" class="alert"></div>
+                </div>
+
+                <div class="gallery" id="gallery">
+                    <div class="gallery-item">
+                        <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'><rect fill='%234a90e2' width='400' height='300'/><text x='50%25' y='50%25' text-anchor='middle' fill='white' font-size='20'>Medical Mission</text></svg>" alt="Sample">
+                    </div>
+                    <div class="gallery-item">
+                        <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'><rect fill='%2356b356' width='400' height='300'/><text x='50%25' y='50%25' text-anchor='middle' fill='white' font-size='20'>Community Care</text></svg>" alt="Sample">
+                    </div>
+                    <div class="gallery-item">
+                        <img src="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 300'><rect fill='%23e67e22' width='400' height='300'/><text x='50%25' y='50%25' text-anchor='middle' fill='white' font-size='20'>Team Service</text></svg>" alt="Sample">
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="guest-upload">
+        <div class="container">
+            <div id="guest-locked" class="locked">
+                <div style="font-size: 3rem; margin-bottom: 1rem;">🔒</div>
+                <h2 class="section-title">Guest Photo Upload - Password Protected</h2>
+                <p style="margin-bottom: 2rem;">Please enter your name and the guest password to upload photos from your mission trip.</p>
+                
+                <div class="login-form">
+                    <div class="form-group">
+                        <label for="guest-name">Your Name:</label>
+                        <input type="text" id="guest-name" placeholder="Enter your full name">
+                    </div>
+                    <div class="form-group">
+                        <label for="guest-password">Guest Password:</label>
+                        <input type="password" id="guest-password" placeholder="Enter guest password">
+                    </div>
+                    <button onclick="unlockGuestUpload()">Access Upload</button>
+                    <div id="guest-login-alert" class="alert"></div>
+                </div>
+            </div>
+
+            <div id="guest-unlocked" style="display: none;">
+                <h2 class="section-title">Guest Photo Upload</h2>
+                <p style="text-align: center; margin-bottom: 2rem;">
+                    Welcome, <strong><span id="guest-name-display"></span></strong>! Upload your photos from the mission trip.
+                </p>
+                
+                <div class="upload-area">
+                    <h3>Upload Your Mission Photos</h3>
+                    <p style="margin: 1rem 0;">Share your experiences and memories from serving in El Seibo</p>
+                    <div class="form-group">
+                        <input type="file" id="guest-image-upload" accept="image/*" multiple>
+                    </div>
+                    <button onclick="uploadGuestImages()">Upload Photos</button>
+                    <div id="guest-upload-alert" class="alert"></div>
+                </div>
+
+                <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 8px; margin-top: 2rem;">
+                    <h3 style="color: #2c5aa0; margin-bottom: 1rem;">Your Uploaded Photos</h3>
+                    <p style="margin-bottom: 1rem; color: #666;">Photos will be organized in your personal folder: <strong><span id="guest-folder-name"></span></strong></p>
+                    <div class="gallery" id="guest-gallery">
+                        <p style="text-align: center; color: #999; padding: 2rem;">No photos uploaded yet. Select photos above to get started.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="sponsors">
+        <div class="container">
+            <h2 class="section-title">Our Sponsors & Partners</h2>
+            <p style="text-align: center; max-width: 800px; margin: 0 auto 3rem;">
+                We are grateful for the generous support of our sponsors and partners who make our mission work possible. 
+                Their commitment enables us to provide quality healthcare to those who need it most.
+            </p>
+
+            <div class="sponsor-grid">
+                <div class="sponsor-card">
+                    <div class="sponsor-logo">🏥</div>
+                    <h3>Medical Partners</h3>
+                    <p>Healthcare organizations providing equipment, supplies, and medical expertise to support our mission trips.</p>
+                </div>
+                <div class="sponsor-card">
+                    <div class="sponsor-logo">⛪</div>
+                    <h3>Church Partners</h3>
+                    <p>Faith communities that send volunteers, raise funds, and support our ongoing ministry in El Seibo.</p>
+                </div>
+                <div class="sponsor-card">
+                    <div class="sponsor-logo">💊</div>
+                    <h3>Pharmaceutical Donors</h3>
+                    <p>Companies and organizations providing essential medications and medical supplies for our clinics.</p>
+                </div>
+                <div class="sponsor-card">
+                    <div class="sponsor-logo">🤝</div>
+                    <h3>Local Partners</h3>
+                    <p>Dominican organizations and community leaders who help us serve effectively and sustainably.</p>
+                </div>
+                <div class="sponsor-card">
+                    <div class="sponsor-logo">🎓</div>
+                    <h3>Educational Institutions</h3>
+                    <p>Universities and training programs that send student volunteers and provide learning opportunities.</p>
+                </div>
+                <div class="sponsor-card">
+                    <div class="sponsor-logo">💼</div>
+                    <h3>Corporate Sponsors</h3>
+                    <p>Businesses that provide financial support and resources to expand our reach and impact.</p>
+                </div>
+            </div>
+
+            <div style="background: #f8f9fa; padding: 2rem; border-radius: 8px; margin-top: 3rem; text-align: center;">
+                <h3 style="color: #2c5aa0; margin-bottom: 1rem;">Become a Sponsor</h3>
+                <p style="max-width: 700px; margin: 0 auto 1.5rem;">
+                    Are you interested in partnering with El Seibo Mission? We welcome sponsorships from organizations, 
+                    churches, businesses, and groups who share our vision of bringing healthcare to underserved communities.
+                </p>
+                <button onclick="showSection('contact')">Contact Us About Sponsorship</button>
+            </div>
+        </div>
+    </section>
+
+    <section id="donate">
+        <div class="container">
+            <h2 class="section-title">Make a Donation</h2>
+            <p style="text-align: center; max-width: 800px; margin: 0 auto 2rem;">
+                Your generous donation directly impacts lives in El Seibo. Every contribution helps us provide essential 
+                medical care, medications, and hope to families in the batey communities.
+            </p>
+
+            <div class="impact-stats">
+                <div class="stat-item">
+                    <div class="stat-number">5,000+</div>
+                    <div class="stat-label">Patients Served Annually</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">15+</div>
+                    <div class="stat-label">Batey Communities Reached</div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-number">100+</div>
+                    <div class="stat-label">Volunteers Each Year</div>
+                </div>
+            </div>
+
+            <h3 style="text-align: center; color: #2c5aa0; margin: 2rem 0 1rem;">Ways to Give</h3>
+            
+            <div class="donation-options">
+                <div class="donation-card">
+                    <h3>$50</h3>
+                    <p><strong>Provides medications</strong></p>
+                    <p>for 5 patients with chronic conditions</p>
+                </div>
+                <div class="donation-card">
+                    <h3>$100</h3>
+                    <p><strong>Supplies a medical clinic</strong></p>
+                    <p>with essential equipment for one day</p>
+                </div>
+                <div class="donation-card">
+                    <h3>$250</h3>
+                    <p><strong>Sponsors comprehensive care</strong></p>
+                    <p>for an entire family including dental and vision</p>
+                </div>
+                <div class="donation-card">
+                    <h3>$500</h3>
+                    <p><strong>Funds a mission trip</strong></p>
+                    <p>for one volunteer healthcare provider</p>
+                </div>
+            </div>
+
+            <div class="custom-donation">
+                <h3 style="color: #2c5aa0; text-align: center; margin-bottom: 1.5rem;">Custom Donation Amount</h3>
+                <div class="form-group">
+                    <label for="donation-amount">Amount ($):</label>
+                    <input type="text" id="donation-amount" placeholder="Enter amount">
+                </div>
+                <div class="form-group">
+                    <label for="donor-name">Name (Optional):</label>
+                    <input type="text" id="donor-name" placeholder="Your name">
+                </div>
+                <div class="form-group">
+                    <label for="donor-email">Email (Optional):</label>
+                    <input type="text" id="donor-email" placeholder="your@email.com">
+                </div>
+                <button onclick="processDonation()" style="width: 100%;">Continue to Donation</button>
+                <p style="text-align: center; font-size: 0.85rem; color: #666; margin-top: 1rem;">
+                    Secure payment processing • Tax-deductible receipt provided
+                </p>
+            </div>
+
+            <div style="background: #fff8e1; padding: 2rem; border-radius: 8px; margin-top: 3rem; border-left: 4px solid #ffc107;">
+                <h3 style="color: #f57c00; margin-bottom: 1rem;">Other Ways to Support</h3>
+                <ul style="margin-left: 1.5rem; line-height: 2;">
+                    <li><strong>Monthly Giving:</strong> Become a sustaining partner with automatic monthly donations</li>
+                    <li><strong>Medical Supplies:</strong> Donate unused medical equipment and supplies</li>
+                    <li><strong>In-Kind Donations:</strong> Contribute medications, vitamins, or medical consumables</li>
+                    <li><strong>Volunteer:</strong> Join us on a mission trip and serve with your skills</li>
+                    <li><strong>Legacy Giving:</strong> Include El Seibo Mission in your estate planning</li>
+                </ul>
+            </div>
+
+            <p style="text-align: center; margin-top: 2rem; color: #666; font-style: italic;">
+                "For I was hungry and you gave me food, I was thirsty and you gave me drink, I was a stranger and you welcomed me, 
+                I was naked and you clothed me, I was sick and you visited me..." - Matthew 25:35-36
+            </p>
+        </div>
+    </section>
+
+    <section id="contact">
+        <div class="container">
+            <h2 class="section-title">Contact Us</h2>
+            <p style="margin-bottom: 2rem;">
+                Interested in learning more about El Seibo Mission or how you can get involved? We'd love to hear from you.
+            </p>
+            
+            <div style="max-width: 600px;">
+                <h3 style="color: #2c5aa0; margin-bottom: 1rem;">Get In Touch</h3>
+                <p><strong>Email:</strong> info@elseibomission.com</p>
+                <p><strong>Location:</strong> El Seibo, Dominican Republic</p>
+                <p style="margin-top: 1.5rem;">
+                    Whether you're interested in joining a mission trip, making a donation, or learning more about our work, 
+                    we welcome your questions and interest in serving alongside us.
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>&copy; 2024 El Seibo Mission. Serving with love and compassion.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">Matthew 25:40 - "Whatever you did for one of the least of these brothers and sisters of mine, you did for me."</p>
+        </div>
+    </footer>
+
+    <script>
+        const galleryPassword = "elseibo2024";
+        const guestPassword = "mission2024";
+        let galleryUnlocked = false;
+        let guestUnlocked = false;
+        let uploadedImages = [];
+        let guestName = "";
+        let guestImages = {};
+
+        function showSection(sectionId) {
+            const sections = document.querySelectorAll('section');
+            sections.forEach(s => s.classList.remove('active'));
+            document.getElementById(sectionId).classList.add('active');
+
+            const links = document.querySelectorAll('.nav-link');
+            links.forEach(l => l.classList.remove('active'));
+            event.target.classList.add('active');
+
+            window.scrollTo(0, 0);
+        }
+
+        function unlockGallery() {
+            const password = document.getElementById('gallery-password').value;
+            const alert = document.getElementById('login-alert');
+
+            if (password === galleryPassword) {
+                galleryUnlocked = true;
+                document.getElementById('images-locked').style.display = 'none';
+                document.getElementById('images-unlocked').style.display = 'block';
+                alert.style.display = 'none';
+            } else {
+                alert.className = 'alert error';
+                alert.textContent = 'Incorrect password. Please try again.';
+                alert.style.display = 'block';
+            }
+        }
+
+        function unlockGuestUpload() {
+            const name = document.getElementById('guest-name').value.trim();
+            const password = document.getElementById('guest-password').value;
+            const alert = document.getElementById('guest-login-alert');
+
+            if (!name) {
+                alert.className = 'alert error';
+                alert.textContent = 'Please enter your name.';
+                alert.style.display = 'block';
+                return;
+            }
+
+            if (password === guestPassword) {
+                guestUnlocked = true;
+                guestName = name;
+                document.getElementById('guest-locked').style.display = 'none';
+                document.getElementById('guest-unlocked').style.display = 'block';
+                document.getElementById('guest-name-display').textContent = guestName;
+                document.getElementById('guest-folder-name').textContent = guestName.replace(/\s+/g, '_');
+                
+                // Initialize guest folder if it doesn't exist
+                if (!guestImages[guestName]) {
+                    guestImages[guestName] = [];
+                }
+                
+                alert.style.display = 'none';
+            } else {
+                alert.className = 'alert error';
+                alert.textContent = 'Incorrect password. Please try again.';
+                alert.style.display = 'block';
+            }
+        }
+
+        function uploadImages() {
+            const fileInput = document.getElementById('image-upload');
+            const alert = document.getElementById('upload-alert');
+            
+            if (fileInput.files.length === 0) {
+                alert.className = 'alert error';
+                alert.textContent = 'Please select at least one image to upload.';
+                alert.style.display = 'block';
+                return;
+            }
+
+            const gallery = document.getElementById('gallery');
+            
+            Array.from(fileInput.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const galleryItem = document.createElement('div');
+                    galleryItem.className = 'gallery-item';
+                    galleryItem.innerHTML = `<img src="${e.target.result}" alt="Uploaded image">`;
+                    gallery.appendChild(galleryItem);
+                    uploadedImages.push(e.target.result);
+                };
+                reader.readAsDataURL(file);
+            });
+
+            alert.className = 'alert success';
+            alert.textContent = `Successfully uploaded ${fileInput.files.length} image(s)!`;
+            alert.style.display = 'block';
+            fileInput.value = '';
+
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 3000);
+        }
+
+        function uploadGuestImages() {
+            const fileInput = document.getElementById('guest-image-upload');
+            const alert = document.getElementById('guest-upload-alert');
+            
+            if (fileInput.files.length === 0) {
+                alert.className = 'alert error';
+                alert.textContent = 'Please select at least one image to upload.';
+                alert.style.display = 'block';
+                return;
+            }
+
+            const gallery = document.getElementById('guest-gallery');
+            
+            // Clear the "no photos" message if it exists
+            if (gallery.querySelector('p')) {
+                gallery.innerHTML = '';
+            }
+            
+            Array.from(fileInput.files).forEach(file => {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const galleryItem = document.createElement('div');
+                    galleryItem.className = 'gallery-item';
+                    galleryItem.innerHTML = `<img src="${e.target.result}" alt="Photo by ${guestName}">`;
+                    gallery.appendChild(galleryItem);
+                    
+                    // Store in guest's folder
+                    guestImages[guestName].push({
+                        data: e.target.result,
+                        filename: file.name,
+                        uploadDate: new Date().toISOString()
+                    });
+                };
+                reader.readAsDataURL(file);
+            });
+
+            alert.className = 'alert success';
+            alert.textContent = `Successfully uploaded ${fileInput.files.length} image(s) to your folder: ${guestName.replace(/\s+/g, '_')}`;
+            alert.style.display = 'block';
+            fileInput.value = '';
+
+            setTimeout(() => {
+                alert.style.display = 'none';
+            }, 3000);
+        }
+
+        function processDonation() {
+            const amount = document.getElementById('donation-amount').value;
+            const name = document.getElementById('donor-name').value;
+            
+            if (!amount || isNaN(amount) || parseFloat(amount) <= 0) {
+                alert('Please enter a valid donation amount.');
+                return;
+            }
+
+            // In a real implementation, this would connect to a payment processor
+            alert(`Thank you for your generous donation of ${parseFloat(amount).toFixed(2)}! 
+                   
+In a live website, this would redirect to a secure payment processor like PayPal, Stripe, or your chosen donation platform.
+
+For now, please contact us directly to complete your donation.`);
+        }
+    </script>
+</body>
+</html>
