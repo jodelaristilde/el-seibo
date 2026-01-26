@@ -81,6 +81,8 @@ const AdminSection = ({
     }
   };
 
+  const [isUploading, setIsUploading] = useState(false);
+
   const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) {
@@ -88,31 +90,98 @@ const AdminSection = ({
       return;
     }
 
-    const formData = new FormData();
-    Array.from(files).forEach(file => {
-      formData.append('images', file);
-    });
-
-    try {
-      const response = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        onAddImages(data.images);
-        onRefresh(); // Re-fetch to confirm sync
-        setAlert({ type: 'success', message: `Successfully uploaded ${files.length} image(s)!` });
-      } else {
-        setAlert({ type: 'error', message: 'Failed to upload images.' });
+    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB for admin
+    const fileList = Array.from(files);
+    
+    for (const file of fileList) {
+      if (file.size > MAX_FILE_SIZE) {
+        setAlert({ 
+          type: 'error', 
+          message: `File "${file.name}" is too large (>${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB).` 
+        });
+        e.target.value = '';
+        return;
       }
-    } catch (error) {
-      console.error('Upload error:', error);
-      setAlert({ type: 'error', message: 'Server error during upload.' });
     }
 
-    setTimeout(() => setAlert(null), 3000);
+    setIsUploading(true);
+    const totalFiles = fileList.length;
+    let completedCount = 0;
+    const uploadedUrls: string[] = [];
+    const failures: string[] = [];
+
+    // Controlled Concurrency: 2 at a time
+    const CONCURRENCY_LIMIT = 2;
+    const uploadTask = async (file: File) => {
+      try {
+        // 1. Get Presigned URL
+        const presignedRes = await fetch('/api/generate-presigned-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, contentType: file.type, type: 'admin' }),
+        });
+
+        if (!presignedRes.ok) throw new Error('Authorization failed');
+        const { uploadUrl, key, publicUrl } = await presignedRes.json();
+
+        // 2. Upload Binary
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: { 
+            'Content-Type': file.type,
+            'x-amz-acl': 'public-read'
+          },
+        });
+
+        if (!uploadRes.ok) throw new Error('Cloud upload failed');
+
+        // 3. Finalize
+        const finalizeRes = await fetch('/api/finalize-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, type: 'admin' }),
+        });
+
+        if (!finalizeRes.ok) throw new Error('Finalization failed');
+        
+        uploadedUrls.push(publicUrl);
+      } catch (error) {
+        console.error(`Admin upload error for ${file.name}:`, error);
+        failures.push(file.name);
+      } finally {
+        completedCount++;
+        setAlert({ 
+          type: 'success', 
+          message: `Uploading gallery images... (${completedCount}/${totalFiles})` 
+        });
+      }
+    };
+
+    const queue = [...fileList];
+    const workers = Array(Math.min(CONCURRENCY_LIMIT, queue.length)).fill(null).map(async () => {
+      while (queue.length > 0) {
+        const file = queue.shift();
+        if (file) await uploadTask(file);
+      }
+    });
+
+    await Promise.all(workers);
+
+    onAddImages(uploadedUrls);
+    onRefresh();
+
+    if (failures.length === 0) {
+      setAlert({ type: 'success', message: `Successfully added ${uploadedUrls.length} images to gallery!` });
+    } else {
+      setAlert({ 
+        type: 'error', 
+        message: `Added ${uploadedUrls.length} images, but ${failures.length} failed.` 
+      });
+    }
+
+    setIsUploading(false);
+    setTimeout(() => setAlert(null), 5000);
     e.target.value = '';
   };
 
@@ -215,7 +284,14 @@ const AdminSection = ({
                 <div className="upload-area">
                   <h3>Upload Main Gallery Images</h3>
                   <div className="form-group" style={{ maxWidth: '400px', margin: '0 auto' }}>
-                    <input type="file" accept="image/*" multiple onChange={handleUpload} />
+                    <input 
+                      type="file" 
+                      accept="image/*,.heic,.heif" 
+                      multiple 
+                      onChange={handleUpload} 
+                      disabled={isUploading} 
+                    />
+                    {isUploading && <p style={{ marginTop: '0.8rem', color: '#2c5aa0', fontWeight: 'bold', fontSize: '0.9rem' }}>Please wait, processing uploads...</p>}
                   </div>
                   {alert && <div className={`alert ${alert.type}`}>{alert.message}</div>}
                 </div>

@@ -79,7 +79,7 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
         const presignedRes = await fetch('/api/generate-presigned-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: file.name, contentType: file.type }),
+          body: JSON.stringify({ filename: file.name, contentType: file.type, type: 'guest' }),
         });
 
         if (!presignedRes.ok) throw new Error('Authorization failed');
@@ -89,16 +89,19 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
         const uploadRes = await fetch(uploadUrl, {
           method: 'PUT',
           body: file,
-          headers: { 'Content-Type': file.type },
+          headers: { 
+            'Content-Type': file.type,
+            'x-amz-acl': 'public-read' // Crucial for Tigris/S3 when ACL is used in signing
+          },
         });
 
         if (!uploadRes.ok) throw new Error('Cloud upload failed');
 
         // 3. Finalize
-        const finalizeRes = await fetch('/api/finalize-guest-upload', {
+        const finalizeRes = await fetch('/api/finalize-upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ key, owner: username }),
+          body: JSON.stringify({ key, owner: username, type: 'guest' }),
         });
 
         if (!finalizeRes.ok) throw new Error('Finalization failed');

@@ -211,9 +211,9 @@ app.get('/api/guest-images', async (req, res) => {
   }
 });
 
-// Direct-to-S3 (Tigris) Presigned URL Generation
+// Unified Direct-to-S3 (Tigris) Presigned URL Generation
 app.post('/api/generate-presigned-url', async (req, res) => {
-  const { filename, contentType } = req.body;
+  const { filename, contentType, type } = req.body; // type: 'admin' | 'guest'
   
   if (!filename) return res.status(400).json({ error: 'Filename is required' });
 
@@ -225,16 +225,17 @@ app.post('/api/generate-presigned-url', async (req, res) => {
     return res.status(400).json({ error: 'Invalid file type. Only images are allowed.' });
   }
 
+  const prefix = type === 'admin' ? 'uploads' : 'guest_uploads';
   const parts = filename.split('.');
   const ext = parts.length > 1 ? parts.pop().toLowerCase() : 'jpg';
-  const key = `guest_uploads/${uuidv4()}.${ext}`;
+  const key = `${prefix}/${uuidv4()}.${ext}`;
 
   try {
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
       ContentType: normalizedType || 'image/jpeg',
-      ACL: 'public-read',
+      ACL: 'public-read', // This requires x-amz-acl header in PUT request
     });
 
     const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
@@ -245,9 +246,9 @@ app.post('/api/generate-presigned-url', async (req, res) => {
   }
 });
 
-// Finalize Guest Upload after Direct-to-S3
-app.post('/api/finalize-guest-upload', async (req, res) => {
-  const { key, owner } = req.body;
+// Unified Finalize Upload after Direct-to-S3
+app.post('/api/finalize-upload', async (req, res) => {
+  const { key, owner, type } = req.body;
   if (!key) return res.status(400).json({ error: 'Key is required' });
 
   try {
@@ -261,38 +262,24 @@ app.post('/api/finalize-guest-upload', async (req, res) => {
 
     const filename = key.split('/').pop();
     
-    // 2. Deduplication: Prevent duplicate entries if the browser retries
-    const metaList = await redis.lrange(CACHE_KEYS.GUEST_IMAGES_LIST, 0, -1) || [];
-    const exists = metaList.some(m => m.filename === filename);
-    
-    if (exists) {
-      return res.json({ 
-        success: true, 
-        image: {
-          url: getPublicUrl(key),
-          filename: filename,
-          owner: owner || 'anonymous'
-        }
-      });
+    if (type === 'guest') {
+      // Deduplication for guests
+      const metaList = await redis.lrange(CACHE_KEYS.GUEST_IMAGES_LIST, 0, -1) || [];
+      if (!metaList.some(m => m.filename === filename)) {
+        await redis.rpush(CACHE_KEYS.GUEST_IMAGES_LIST, { filename, owner: owner || 'anonymous' });
+      }
+      await redis.del(CACHE_KEYS.GUEST_IMAGES);
+    } else {
+      // For admins, we just clear the main gallery cache
+      await redis.del(CACHE_KEYS.ADMIN_IMAGES);
     }
-
-    const newImage = { 
-      filename: filename, 
-      owner: owner || 'anonymous' 
-    };
-    
-    // 3. Atomic update using RPUSH (prevents race conditions)
-    await redis.rpush(CACHE_KEYS.GUEST_IMAGES_LIST, newImage);
-    
-    // Clear Cache
-    await redis.del(CACHE_KEYS.GUEST_IMAGES);
 
     res.json({ 
       success: true, 
       image: {
         url: getPublicUrl(key),
         filename: filename,
-        owner: newImage.owner
+        owner: owner || 'admin'
       }
     });
   } catch (error) {
