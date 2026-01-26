@@ -51,37 +51,74 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
       return;
     }
 
-    setIsUploading(true);
-    setAlert({ type: 'success', message: 'Uploading your memories...' });
+    // Since we are bypassing Vercel and going direct to S3, we can allow more!
+    // Let's set a generous per-file limit of 10MB just for safety.
+    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const fileList = Array.from(files);
+    
+    for (const file of fileList) {
+      if (file.size > MAX_FILE_SIZE) {
+        setAlert({ 
+          type: 'error', 
+          message: `File "${file.name}" is too large (>${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB). Please choose smaller photos.` 
+        });
+        e.target.value = '';
+        return;
+      }
+    }
 
-    const formData = new FormData();
-    Array.from(files).forEach(file => {
-      formData.append('images', file);
-    });
-    formData.append('owner', username);
+    setIsUploading(true);
+    setAlert({ type: 'success', message: `Uploading ${files.length} memory${files.length > 1 ? 's' : ''} directly to cloud...` });
+
+    const uploadedImages: GuestImage[] = [];
 
     try {
-      const response = await fetch('/api/guest-upload', {
-        method: 'POST',
-        body: formData,
-      });
+      for (const file of fileList) {
+        // 1. Get Presigned URL
+        const presignedRes = await fetch('/api/generate-presigned-url', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: file.name, contentType: file.type }),
+        });
 
-      if (response.ok) {
-        const data = await response.json();
-        onAddImages(data.images);
-        onRefresh(); // Re-fetch to confirm sync
-        setAlert({ type: 'success', message: `Successfully uploaded ${files.length} images!` });
-      } else {
-        setAlert({ type: 'error', message: 'Failed to upload images.' });
+        if (!presignedRes.ok) throw new Error('Failed to get upload authorization');
+        const { uploadUrl, key } = await presignedRes.json();
+
+        // 2. Upload Binary directly to S3 (Tigris)
+        const uploadRes = await fetch(uploadUrl, {
+          method: 'PUT',
+          body: file,
+          headers: {
+            'Content-Type': file.type,
+          },
+        });
+
+        if (!uploadRes.ok) throw new Error(`Upload failed for ${file.name}`);
+
+        // 3. Finalize on our backend (save metadata)
+        const finalizeRes = await fetch('/api/finalize-guest-upload', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ key, owner: username }),
+        });
+
+        if (finalizeRes.ok) {
+          const { image } = await finalizeRes.json();
+          uploadedImages.push(image);
+        }
       }
+
+      onAddImages(uploadedImages);
+      onRefresh(); // Re-fetch to confirm sync
+      setAlert({ type: 'success', message: `Successfully shared ${uploadedImages.length} moments!` });
     } catch (error) {
       console.error('Upload error:', error);
-      setAlert({ type: 'error', message: 'Server error during upload.' });
+      setAlert({ type: 'error', message: 'Something went wrong during cloud upload. Try again with fewer images.' });
     } finally {
       setIsUploading(false);
     }
 
-    setTimeout(() => setAlert(null), 3500);
+    setTimeout(() => setAlert(null), 5000);
     e.target.value = '';
   };
 
@@ -125,7 +162,13 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
               <h3 style={{ color: '#2c5aa0' }}>Upload Your Community Photos</h3>
               <p style={{ margin: '1rem 0' }}>Share your mission experience with the world.</p>
               <div className="form-group" style={{ maxWidth: '400px', margin: '0 auto' }}>
-                <input type="file" accept="image/*" multiple onChange={handleUpload} disabled={isUploading} />
+                <input 
+                  type="file" 
+                  accept="image/*,.heic,.heif" 
+                  multiple 
+                  onChange={handleUpload} 
+                  disabled={isUploading} 
+                />
                 {isUploading && <p style={{ marginTop: '0.8rem', color: '#2c5aa0', fontWeight: 'bold', fontSize: '0.9rem' }}>Please wait, uploading...</p>}
               </div>
               {alert && <div className={`alert ${alert.type}`}>{alert.message}</div>}

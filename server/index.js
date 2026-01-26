@@ -1,7 +1,8 @@
 import express from 'express';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
-import { S3Client, ListObjectsV2Command, DeleteObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, ListObjectsV2Command, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Redis } from '@upstash/redis';
 import cors from 'cors';
 import { v4 as uuidv4 } from 'uuid';
@@ -54,7 +55,8 @@ const createS3Storage = (folder) => multerS3({
     cb(null, { fieldName: file.fieldname });
   },
   key: (req, file, cb) => {
-    const ext = file.originalname.split('.').pop();
+    const parts = file.originalname.split('.');
+    const ext = parts.length > 1 ? parts.pop().toLowerCase() : 'jpg';
     cb(null, `${folder}/${uuidv4()}.${ext}`);
   }
 });
@@ -201,6 +203,62 @@ app.post('/api/guest-upload', guestUpload.array('images'), async (req, res) => {
   // Clear Cache
   await redis.del(CACHE_KEYS.GUEST_IMAGES);
   res.json({ message: 'Upload successful', images: newImages });
+});
+
+// Direct-to-S3 (Tigris) Presigned URL Generation
+app.post('/api/generate-presigned-url', async (req, res) => {
+  const { filename, contentType } = req.body;
+  if (!filename) return res.status(400).json({ error: 'Filename is required' });
+
+  const ext = filename.split('.').pop().toLowerCase();
+  const key = `guest_uploads/${uuidv4()}.${ext}`;
+
+  try {
+    const command = new PutObjectCommand({
+      Bucket: BUCKET_NAME,
+      Key: key,
+      ContentType: contentType || 'image/jpeg',
+      ACL: 'public-read',
+    });
+
+    const url = await getSignedUrl(s3, command, { expiresIn: 3600 });
+    res.json({ uploadUrl: url, key: key, publicUrl: getPublicUrl(key) });
+  } catch (error) {
+    console.error('Presigned URL error:', error);
+    res.status(500).json({ error: 'Failed to generate upload URL' });
+  }
+});
+
+// Finalize Guest Upload after Direct-to-S3
+app.post('/api/finalize-guest-upload', async (req, res) => {
+  const { key, owner } = req.body;
+  if (!key) return res.status(400).json({ error: 'Key is required' });
+
+  try {
+    const meta = await getData('guest_metadata');
+    const filename = key.split('/').pop();
+    
+    const newImage = { 
+      filename: filename, 
+      owner: owner || 'anonymous' 
+    };
+    
+    meta.images.push(newImage);
+    await saveData('guest_metadata', meta);
+    await redis.del(CACHE_KEYS.GUEST_IMAGES);
+
+    res.json({ 
+      success: true, 
+      image: {
+        url: getPublicUrl(key),
+        filename: filename,
+        owner: newImage.owner
+      }
+    });
+  } catch (error) {
+    console.error('Finalize upload error:', error);
+    res.status(500).json({ error: 'Failed to finalize upload' });
+  }
 });
 
 app.delete('/api/images/:type/:filename', async (req, res) => {
