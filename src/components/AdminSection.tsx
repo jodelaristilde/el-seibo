@@ -9,6 +9,7 @@ interface AdminSectionProps {
   onAddImages: (images: string[]) => void;
   onDeleteImage: (imageUrl: string) => void;
   onDeleteGuestImage: (imageUrl: string) => void;
+  onRefresh: () => void;
   uploadedImages: string[];
   guestImages: GuestImage[];
   isLoggedIn: boolean;
@@ -19,6 +20,7 @@ const AdminSection = ({
   onAddImages, 
   onDeleteImage, 
   onDeleteGuestImage, 
+  onRefresh,
   uploadedImages, 
   guestImages,
   isLoggedIn,
@@ -38,7 +40,6 @@ const AdminSection = ({
   useEffect(() => {
     localStorage.setItem('adminActiveTab', activeTab);
   }, [activeTab]);
-  const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   
   const imagesPerPage = 12;
@@ -51,7 +52,7 @@ const AdminSection = ({
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/users');
+      const response = await fetch('/api/users');
       const data = await response.json();
       setUsers(data);
     } catch (error) {
@@ -61,7 +62,7 @@ const AdminSection = ({
 
   const handleLogin = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, role: 'admin' }),
@@ -93,7 +94,7 @@ const AdminSection = ({
     });
 
     try {
-      const response = await fetch('http://localhost:5000/api/upload', {
+      const response = await fetch('/api/upload', {
         method: 'POST',
         body: formData,
       });
@@ -101,6 +102,7 @@ const AdminSection = ({
       if (response.ok) {
         const data = await response.json();
         onAddImages(data.images);
+        onRefresh(); // Re-fetch to confirm sync
         setAlert({ type: 'success', message: `Successfully uploaded ${files.length} image(s)!` });
       } else {
         setAlert({ type: 'error', message: 'Failed to upload images.' });
@@ -115,24 +117,23 @@ const AdminSection = ({
   };
 
   const handleCreateUser = async () => {
-    if (!newUsername || !newPassword) {
-      setAlert({ type: 'error', message: 'Username and password are required' });
+    if (!newPassword) {
+      setAlert({ type: 'error', message: 'Password is required' });
       return;
     }
     try {
-      const response = await fetch('http://localhost:5000/api/users', {
+      const response = await fetch('/api/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username: newUsername, password: newPassword }),
+        body: JSON.stringify({ password: newPassword }),
       });
       if (response.ok) {
-        setAlert({ type: 'success', message: 'Guest user created successfully' });
-        setNewUsername('');
+        setAlert({ type: 'success', message: 'Guest password added successfully' });
         setNewPassword('');
         fetchUsers();
       } else {
         const data = await response.json();
-        setAlert({ type: 'error', message: data.error || 'Failed to create user' });
+        setAlert({ type: 'error', message: data.error || 'Failed to add password' });
       }
     } catch (error) {
       setAlert({ type: 'error', message: 'Connection error' });
@@ -140,16 +141,18 @@ const AdminSection = ({
     setTimeout(() => setAlert(null), 3000);
   };
 
-  const handleDeleteUser = async (uName: string) => {
+  const handleDeleteUser = async (pwd: string) => {
     try {
-      const response = await fetch(`http://localhost:5000/api/users/${uName}`, {
-        method: 'DELETE',
+      const response = await fetch('/api/users/delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pwd }),
       });
       if (response.ok) {
         fetchUsers();
       }
     } catch (error) {
-      console.error('Failed to delete user:', error);
+      console.error('Failed to delete password:', error);
     }
   };
 
@@ -176,18 +179,18 @@ const AdminSection = ({
         {!isLoggedIn ? (
           <div className="locked">
             <h2 className="section-title">Admin Login</h2>
-            <div className="login-form">
+            <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="login-form">
               <div className="form-group">
                 <label>Username</label>
-                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} />
+                <input type="text" value={username} onChange={(e) => setUsername(e.target.value)} required />
               </div>
               <div className="form-group">
                 <label>Password</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} />
+                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
               </div>
-              <button onClick={handleLogin}>Login</button>
+              <button type="submit">Login</button>
               {alert && <div className={`alert ${alert.type}`}>{alert.message}</div>}
-            </div>
+            </form>
           </div>
         ) : (
           <div>
@@ -204,7 +207,7 @@ const AdminSection = ({
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '2px solid #eee', paddingBottom: '1rem' }}>
                 <button onClick={() => setActiveTab('images')} style={{ background: activeTab === 'images' ? '#2c5aa0' : '#ccc', flex: 1 }}>Gallery Images</button>
                 <button onClick={() => setActiveTab('guests')} style={{ background: activeTab === 'guests' ? '#2c5aa0' : '#ccc', flex: 1 }}>Guest Photos</button>
-                <button onClick={() => setActiveTab('users')} style={{ background: activeTab === 'users' ? '#f39c12' : '#ccc', flex: 1 }}>Manage Guest Auth</button>
+                <button onClick={() => setActiveTab('users')} style={{ background: activeTab === 'users' ? '#f39c12' : '#ccc', flex: 1 }}>Manage Guest Passwords</button>
             </div>
 
             {activeTab === 'images' && (
@@ -264,30 +267,41 @@ const AdminSection = ({
 
             {activeTab === 'users' && (
                <div className="user-management" style={{ maxWidth: '600px', margin: '0 auto' }}>
-                <h3 style={{ textAlign: 'center' }}>Guest User Accounts</h3>
-                <div className="login-form" style={{ boxShadow: 'none', background: '#f9f9f9', marginTop: '1rem' }}>
+                <h3 style={{ textAlign: 'center' }}>Guest Password Management</h3>
+                <p style={{ textAlign: 'center', color: '#666', marginBottom: '1.5rem' }}>Set a shared password for your guests to use for photo uploads.</p>
+                <form 
+                  onSubmit={(e) => { e.preventDefault(); handleCreateUser(); }}
+                  className="login-form" 
+                  style={{ boxShadow: 'none', background: '#f9f9f9', marginTop: '1rem', border: '1px solid #ddd' }}
+                >
                   <div className="form-group">
-                    <label>New Guest Username</label>
-                    <input type="text" value={newUsername} onChange={(e) => setNewUsername(e.target.value)} />
+                    <label>Add New Password</label>
+                    <input 
+                      type="text" 
+                      value={newPassword} 
+                      onChange={(e) => setNewPassword(e.target.value)} 
+                      placeholder="Enter new guest password"
+                      required
+                    />
                   </div>
-                  <div className="form-group">
-                    <label>New Guest Password</label>
-                    <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-                  </div>
-                  <button onClick={handleCreateUser} style={{ background: '#f39c12' }}>Create Guest Account</button>
+                  <button type="submit" style={{ background: '#f39c12', width: '100%' }}>Create Password</button>
                   {alert && <div className={`alert ${alert.type}`}>{alert.message}</div>}
-                </div>
+                </form>
                 
-                <div style={{ marginTop: '2rem' }}>
-                  <h4>Current Guest Accounts</h4>
+                <div style={{ marginTop: '3rem' }}>
+                  <h4 style={{ borderBottom: '2px solid #eee', paddingBottom: '0.5rem', marginBottom: '1rem' }}>Active Guest Passwords</h4>
                   <ul style={{ listStyle: 'none', padding: 0 }}>
-                    {users.map(u => (
-                      <li key={u.username} style={{ display: 'flex', justifyContent: 'space-between', padding: '0.8rem', borderBottom: '1px solid #eee', alignItems: 'center' }}>
-                        <span>{u.username}</span>
-                        <button onClick={() => handleDeleteUser(u.username)} style={{ background: '#e74c3c', fontSize: '0.8rem', padding: '4px 8px' }}>Delete Account</button>
+                    {users.map((pwd, idx) => (
+                      <li key={`${pwd}-${idx}`} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem', background: '#fff', border: '1px solid #eee', borderRadius: '8px', marginBottom: '0.5rem', alignItems: 'center', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                        <div>
+                          <span style={{ color: '#666', fontSize: '0.8rem', display: 'block' }}>Current Guest Password:</span>
+                          <code style={{ background: '#e8f4fd', color: '#2c5aa0', padding: '0.3rem 0.6rem', borderRadius: '4px', fontSize: '1.2rem', fontWeight: 'bold' }}>{typeof pwd === 'string' ? pwd : JSON.stringify(pwd)}</code>
+                        </div>
+                        <button onClick={() => handleDeleteUser(typeof pwd === 'string' ? pwd : String(pwd))} style={{ background: '#e74c3c', fontSize: '0.8rem', padding: '0.5rem 1rem', borderRadius: '4px' }}>Delete</button>
                       </li>
                     ))}
                   </ul>
+                  {users.length === 0 && <p style={{ textAlign: 'center', color: '#999', marginTop: '2rem', fontStyle: 'italic' }}>No active guest passwords.</p>}
                 </div>
               </div>
             )}

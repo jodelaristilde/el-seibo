@@ -44,6 +44,7 @@ function App() {
   });
   const [adminImages, setAdminImages] = useState<string[]>([]);
   const [guestImages, setGuestImages] = useState<GuestImage[]>([]);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useLayoutEffect(() => {
     window.scrollTo(0, 0);
@@ -51,6 +52,7 @@ function App() {
 
   useEffect(() => {
     localStorage.setItem('activeSection', activeSection);
+    setIsMenuOpen(false); // Close menu when section changes
   }, [activeSection]);
 
   useEffect(() => {
@@ -64,7 +66,7 @@ function App() {
 
   const fetchAdminImages = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/images');
+      const response = await fetch('/api/images');
       const data = await response.json();
       setAdminImages(data);
     } catch (error) {
@@ -74,7 +76,7 @@ function App() {
 
   const fetchGuestImages = async () => {
     try {
-      const response = await fetch('http://localhost:5000/api/guest-images');
+      const response = await fetch('/api/guest-images');
       const data = await response.json();
       setGuestImages(data);
     } catch (error) {
@@ -93,7 +95,7 @@ function App() {
   const handleDeleteImage = async (imageUrl: string, type: 'admin' | 'guest') => {
     try {
       const filename = imageUrl.split('/').pop();
-      const response = await fetch(`http://localhost:5000/api/images/${type}/${filename}`, {
+      const response = await fetch(`/api/images/${type}/${filename}`, {
         method: 'DELETE',
       });
       if (response.ok) {
@@ -115,16 +117,23 @@ function App() {
           <div className="header-content">
             <div className="logo-container">
               <Logo />
-              <div>
+              <div className="header-text">
                 <h1>El Seibo Mission</h1>
                 <p className="tagline">Serving with compassion in the Dominican Republic</p>
               </div>
             </div>
+            <button 
+              className="menu-toggle" 
+              onClick={() => setIsMenuOpen(!isMenuOpen)}
+              aria-label="Toggle menu"
+            >
+              {isMenuOpen ? '✕' : '☰'}
+            </button>
           </div>
         </div>
       </header>
 
-      <nav>
+      <nav className={isMenuOpen ? 'nav-open' : ''}>
         <div className="container">
           <ul>
             <li><a className={activeSection === 'home' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('home')}>Home</a></li>
@@ -149,6 +158,7 @@ function App() {
           <GuestUploadSection 
             onAddImages={handleAddGuestImages} 
             onDeleteImage={(url) => handleDeleteImage(url, 'guest')}
+            onRefresh={fetchGuestImages}
             guestImages={guestImages} 
           />
         )}
@@ -160,6 +170,7 @@ function App() {
             onAddImages={handleAddAdminImages} 
             onDeleteImage={(url: string) => handleDeleteImage(url, 'admin')} 
             onDeleteGuestImage={(url: string) => handleDeleteImage(url, 'guest')}
+            onRefresh={() => { fetchAdminImages(); fetchGuestImages(); }}
             uploadedImages={adminImages} 
             guestImages={guestImages}
             isLoggedIn={isAdminLoggedIn}
@@ -170,7 +181,7 @@ function App() {
 
       <footer>
         <div className="container">
-          <p>&copy; 2024 El Seibo Mission. Serving with love and compassion.</p>
+          <p>&copy; 2026 El Seibo Mission. Serving with love and compassion.</p>
           <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Matthew 25:40 - "Whatever you did for one of the least of these brothers and sisters of mine, you did for me."</p>
         </div>
       </footer>

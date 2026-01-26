@@ -810,7 +810,7 @@
 
     <footer>
         <div class="container">
-            <p>&copy; 2024 El Seibo Mission. Serving with love and compassion.</p>
+            <p>&copy; 2026 El Seibo Mission. Serving with love and compassion.</p>
             <p style="margin-top: 0.5rem; font-size: 0.9rem;">Matthew 25:40 - "Whatever you did for one of the least of these brothers and sisters of mine, you did for me."</p>
         </div>
     </footer>

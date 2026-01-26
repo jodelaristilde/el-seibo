@@ -1,27 +1,84 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 
 const DonateSection = () => {
   const [amount, setAmount] = useState('');
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'info'; text: string } | null>(null);
 
-  const processDonation = () => {
+  useEffect(() => {
+    // Check for success or cancel query parameters
+    const query = new URLSearchParams(window.location.search);
+
+    if (query.get('success')) {
+      setMessage({
+        type: 'success',
+        text: 'Thank you for your generous donation! Your support directly helps the mission.',
+      });
+      // Remove query params from URL
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+
+    if (query.get('canceled')) {
+      setMessage({
+        type: 'info',
+        text: 'Donation canceled. If you had any issues, please let us know.',
+      });
+      window.history.replaceState({}, document.title, window.location.pathname);
+    }
+  }, []);
+
+  const handleDonate = async () => {
     if (!amount || isNaN(Number(amount)) || parseFloat(amount) <= 0) {
-      alert('Please enter a valid donation amount.');
+      setMessage({ type: 'error', text: 'Please enter a valid donation amount.' });
       return;
     }
 
-    alert(`Thank you for your generous donation of $${parseFloat(amount).toFixed(2)}! 
-           
-In a live website, this would redirect to a secure payment processor like PayPal, Stripe, or your chosen donation platform.
+    setIsLoading(true);
+    setMessage(null);
 
-For now, please contact us directly to complete your donation.`);
+    try {
+      const response = await fetch('/api/create-checkout-session', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          amount: parseFloat(amount),
+          name
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 401) {
+          throw new Error('Invalid Stripe API keys. Please check your .env file.');
+        }
+        throw new Error('Failed to create checkout session');
+      }
+
+      const session = await response.json();
+
+      if (session.url) {
+        // Redirect to Stripe Checkout
+        window.location.href = session.url;
+      } else {
+        throw new Error('Stripe session URL not found');
+      }
+    } catch (error: any) {
+      console.error('Donation Error:', error);
+      const errorMsg = error.message.includes('API keys') 
+        ? error.message 
+        : 'There was an error connecting to the payment gateway. Please verify your Stripe keys in the .env file.';
+      
+      setMessage({ type: 'error', text: errorMsg });
+      alert(errorMsg); // Fallback alert for high visibility
+      setIsLoading(false);
+    }
   };
 
   return (
     <section id="donate">
       <div className="container">
         <h2 className="section-title">Make a Donation</h2>
+        
         <p style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 2rem' }}>
           Your generous donation directly impacts lives in El Seibo. Every contribution helps us provide essential 
           medical care, medications, and hope to families in the batey communities.
@@ -42,25 +99,25 @@ For now, please contact us directly to complete your donation.`);
           </div>
         </div>
 
-        <h3 style={{ textAlign: 'center', color: '#2c5aa0', margin: '2rem 0 1rem' }}>Ways to Give</h3>
+        <h3 style={{ textAlign: 'center', color: '#2c5aa0', margin: '2rem 0 1rem' }}>Sponsorship Tiers</h3>
         
         <div className="donation-options">
-          <div className="donation-card" onClick={() => setAmount('50')}>
+          <div className={`donation-card ${amount === '50' ? 'active' : ''}`} onClick={() => setAmount('50')} style={{ border: amount === '50' ? '2px solid #2c5aa0' : '1px solid #ddd' }}>
             <h3>$50</h3>
             <p><strong>Provides medications</strong></p>
             <p>for 5 patients with chronic conditions</p>
           </div>
-          <div className="donation-card" onClick={() => setAmount('100')}>
+          <div className={`donation-card ${amount === '100' ? 'active' : ''}`} onClick={() => setAmount('100')} style={{ border: amount === '100' ? '2px solid #2c5aa0' : '1px solid #ddd' }}>
             <h3>$100</h3>
             <p><strong>Supplies a medical clinic</strong></p>
             <p>with essential equipment for one day</p>
           </div>
-          <div className="donation-card" onClick={() => setAmount('250')}>
+          <div className={`donation-card ${amount === '250' ? 'active' : ''}`} onClick={() => setAmount('250')} style={{ border: amount === '250' ? '2px solid #2c5aa0' : '1px solid #ddd' }}>
             <h3>$250</h3>
             <p><strong>Sponsors comprehensive care</strong></p>
             <p>for an entire family including dental and vision</p>
           </div>
-          <div className="donation-card" onClick={() => setAmount('500')}>
+          <div className={`donation-card ${amount === '500' ? 'active' : ''}`} onClick={() => setAmount('500')} style={{ border: amount === '500' ? '2px solid #2c5aa0' : '1px solid #ddd' }}>
             <h3>$500</h3>
             <p><strong>Funds a mission trip</strong></p>
             <p>for one volunteer healthcare provider</p>
@@ -68,7 +125,14 @@ For now, please contact us directly to complete your donation.`);
         </div>
 
         <div className="custom-donation">
-          <h3 style={{ color: '#2c5aa0', textAlign: 'center', marginBottom: '1.5rem' }}>Custom Donation Amount</h3>
+          <h3 style={{ color: '#2c5aa0', textAlign: 'center', marginBottom: '1.5rem' }}>Donation Details</h3>
+          
+          {message && (
+            <div className={`alert ${message.type}`} style={{ marginBottom: '1.5rem', textAlign: 'center', fontSize: '0.9rem' }}>
+              {message.type === 'success' ? '🙏 ' : ''}{message.text}
+            </div>
+          )}
+
           <div className="form-group">
             <label htmlFor="donation-amount">Amount ($):</label>
             <input 
@@ -77,6 +141,7 @@ For now, please contact us directly to complete your donation.`);
               placeholder="Enter amount" 
               value={amount}
               onChange={(e) => setAmount(e.target.value)}
+              disabled={isLoading}
             />
           </div>
           <div className="form-group">
@@ -87,28 +152,24 @@ For now, please contact us directly to complete your donation.`);
               placeholder="Your name" 
               value={name}
               onChange={(e) => setName(e.target.value)}
+              disabled={isLoading}
             />
           </div>
-          <div className="form-group">
-            <label htmlFor="donor-email">Email (Optional):</label>
-            <input 
-              type="text" 
-              id="donor-email" 
-              placeholder="your@email.com" 
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </div>
-          <button onClick={processDonation} style={{ width: '100%' }}>Continue to Donation</button>
+          <button 
+            onClick={handleDonate} 
+            style={{ width: '100%', opacity: isLoading ? 0.7 : 1 }}
+            disabled={isLoading}
+          >
+            {isLoading ? 'Connecting to Stripe...' : 'Donate with Stripe'}
+          </button>
           <p style={{ textAlign: 'center', fontSize: '0.85rem', color: '#666', marginTop: '1rem' }}>
-            Secure payment processing • Tax-deductible receipt provided
+            Secure checkout via Stripe • Redirecting to payment portal
           </p>
         </div>
 
-        <div style={{ background: '#fff8e1', padding: '2rem', borderRadius: '8px', marginTop: '3rem', borderLeft: '4px solid #ffc107' }}>
-          <h3 style={{ color: '#f57c00', marginBottom: '1rem' }}>Other Ways to Support</h3>
+        <div style={{ background: '#f8f9fa', padding: '2rem', borderRadius: '8px', marginTop: '3rem', borderLeft: '4px solid #2c5aa0' }}>
+          <h3 style={{ color: '#2c5aa0', marginBottom: '1rem' }}>Other Ways to Support</h3>
           <ul style={{ marginLeft: '1.5rem', lineHeight: '2' }}>
-            <li><strong>Monthly Giving:</strong> Become a sustaining partner with automatic monthly donations</li>
             <li><strong>Medical Supplies:</strong> Donate unused medical equipment and supplies</li>
             <li><strong>In-Kind Donations:</strong> Contribute medications, vitamins, or medical consumables</li>
             <li><strong>Volunteer:</strong> Join us on a mission trip and serve with your skills</li>

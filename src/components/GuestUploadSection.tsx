@@ -4,10 +4,11 @@ import { type GuestImage } from '../App';
 interface GuestUploadSectionProps {
   onAddImages: (images: GuestImage[]) => void;
   onDeleteImage: (imageUrl: string) => void;
+  onRefresh: () => void;
   guestImages: GuestImage[];
 }
 
-const GuestUploadSection = ({ onAddImages, onDeleteImage, guestImages }: GuestUploadSectionProps) => {
+const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages }: GuestUploadSectionProps) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
@@ -17,12 +18,12 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, guestImages }: GuestUp
 
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
-      setAlert({ type: 'error', message: 'Username and password are required.' });
+      setAlert({ type: 'error', message: 'Name and guest password are required.' });
       return;
     }
 
     try {
-      const response = await fetch('http://localhost:5000/api/login', {
+      const response = await fetch('/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password, role: 'guest' }),
@@ -34,12 +35,14 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, guestImages }: GuestUp
         setShowLoginModal(false);
         setAlert(null);
       } else {
-        setAlert({ type: 'error', message: data.error || 'Invalid credentials' });
+        setAlert({ type: 'error', message: data.error || 'Invalid guest password' });
       }
     } catch (error) {
       setAlert({ type: 'error', message: 'Connection error' });
     }
   };
+
+  const [isUploading, setIsUploading] = useState(false);
 
   const handleUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
@@ -48,6 +51,9 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, guestImages }: GuestUp
       return;
     }
 
+    setIsUploading(true);
+    setAlert({ type: 'success', message: 'Uploading your memories...' });
+
     const formData = new FormData();
     Array.from(files).forEach(file => {
       formData.append('images', file);
@@ -55,7 +61,7 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, guestImages }: GuestUp
     formData.append('owner', username);
 
     try {
-      const response = await fetch('http://localhost:5000/api/guest-upload', {
+      const response = await fetch('/api/guest-upload', {
         method: 'POST',
         body: formData,
       });
@@ -63,6 +69,7 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, guestImages }: GuestUp
       if (response.ok) {
         const data = await response.json();
         onAddImages(data.images);
+        onRefresh(); // Re-fetch to confirm sync
         setAlert({ type: 'success', message: `Successfully uploaded ${files.length} images!` });
       } else {
         setAlert({ type: 'error', message: 'Failed to upload images.' });
@@ -70,9 +77,11 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, guestImages }: GuestUp
     } catch (error) {
       console.error('Upload error:', error);
       setAlert({ type: 'error', message: 'Server error during upload.' });
+    } finally {
+      setIsUploading(false);
     }
 
-    setTimeout(() => setAlert(null), 3000);
+    setTimeout(() => setAlert(null), 3500);
     e.target.value = '';
   };
 
@@ -116,7 +125,8 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, guestImages }: GuestUp
               <h3 style={{ color: '#2c5aa0' }}>Upload Your Community Photos</h3>
               <p style={{ margin: '1rem 0' }}>Share your mission experience with the world.</p>
               <div className="form-group" style={{ maxWidth: '400px', margin: '0 auto' }}>
-                <input type="file" accept="image/*" multiple onChange={handleUpload} />
+                <input type="file" accept="image/*" multiple onChange={handleUpload} disabled={isUploading} />
+                {isUploading && <p style={{ marginTop: '0.8rem', color: '#2c5aa0', fontWeight: 'bold', fontSize: '0.9rem' }}>Please wait, uploading...</p>}
               </div>
               {alert && <div className={`alert ${alert.type}`}>{alert.message}</div>}
             </div>
@@ -181,31 +191,34 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, guestImages }: GuestUp
         <div className="modal-overlay" onClick={() => setShowLoginModal(false)} style={{ alignItems: 'center', display: 'flex', justifyContent: 'center' }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '2.5rem', borderRadius: '12px', maxWidth: '450px', width: '90%', height: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', display: 'block' }}>
             <button className="modal-close" onClick={() => setShowLoginModal(false)} style={{ color: '#333', top: '15px', right: '15px', fontSize: '1.5rem' }}>&times;</button>
-            <h2 style={{ textAlign: 'center', marginBottom: '2rem', color: '#2c5aa0', fontSize: '1.8rem', fontWeight: 'bold' }}>Guest Login</h2>
-            <div className="login-form" style={{ boxShadow: 'none', padding: 0, background: 'transparent' }}>
-              <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#555' }}>Username</label>
+            <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#2c5aa0', fontSize: '1.8rem', fontWeight: 'bold' }}>Guest Upload Access</h2>
+            <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="login-form" style={{ boxShadow: 'none', padding: 0, background: 'transparent' }}>
+              <p style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '0.9rem', color: '#666', lineHeight: '1.4' }}>Enter your name and the guest password provided by the mission admin.</p>
+              <div className="form-group" style={{ marginBottom: '1.2rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', color: '#444' }}>Your Name</label>
                 <input 
                   type="text" 
                   value={username} 
                   onChange={(e) => setUsername(e.target.value)} 
-                  placeholder="Enter guest username" 
-                  style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ddd' }}
+                  placeholder="Enter your full name" 
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ccc' }}
+                  required
                 />
               </div>
-              <div className="form-group" style={{ marginBottom: '2rem' }}>
-                <label style={{ display: 'block', marginBottom: '0.5rem', fontWeight: '600', color: '#555' }}>Password</label>
+              <div className="form-group" style={{ marginBottom: '1.8rem' }}>
+                <label style={{ display: 'block', marginBottom: '0.4rem', fontWeight: '600', color: '#444' }}>Guest Password</label>
                 <input 
                   type="password" 
                   value={password} 
                   onChange={(e) => setPassword(e.target.value)} 
                   placeholder="Enter guest password" 
-                  style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ddd' }}
+                  style={{ width: '100%', padding: '0.8rem', borderRadius: '6px', border: '1px solid #ccc' }}
+                  required
                 />
               </div>
-              <button onClick={handleLogin} style={{ width: '100%', padding: '1rem', background: '#2c5aa0', borderRadius: '6px', fontSize: '1.1rem' }}>Login to Upload</button>
-              {alert && <div className={`alert ${alert.type}`} style={{ marginTop: '1.5rem', textAlign: 'center' }}>{alert.message}</div>}
-            </div>
+              <button type="submit" style={{ width: '100%', padding: '1rem', background: '#2c5aa0', borderRadius: '6px', fontSize: '1.1rem', fontWeight: 'bold' }}>Enter Gallery</button>
+              {alert && <div className={`alert ${alert.type}`} style={{ marginTop: '1.2rem', textAlign: 'center', padding: '0.8rem' }}>{alert.message}</div>}
+            </form>
             <p style={{ marginTop: '2rem', textAlign: 'center', fontSize: '0.85rem', color: '#888' }}>
               Don't have credentials? Please contact the mission administrator.
             </p>
