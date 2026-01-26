@@ -1,7 +1,7 @@
 import express from 'express';
 import multer from 'multer';
 import multerS3 from 'multer-s3';
-import { S3Client, ListObjectsV2Command, DeleteObjectCommand, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, ListObjectsV2Command, DeleteObjectCommand, PutObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { Redis } from '@upstash/redis';
 import cors from 'cors';
@@ -39,12 +39,33 @@ const BUCKET_NAME = process.env.TIGRIS_BUCKET;
 const CACHE_KEYS = {
   ADMIN_IMAGES: 'cache:admin_images',
   GUEST_IMAGES: 'cache:guest_images',
+  GUEST_IMAGES_LIST: 'guest_images_list', // Atomic list key
 };
 const CACHE_TTL = 3600; // 1 hour in seconds
 
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Migration: Move guest_metadata JSON to guest_images_list Redis List
+const migrateGuestMetadata = async () => {
+  try {
+    const legacy = await redis.get('guest_metadata');
+    if (legacy && Array.isArray(legacy.images) && legacy.images.length > 0) {
+      console.log(`Detected legacy guest_metadata. Migrating ${legacy.images.length} images to atomic list...`);
+      for (const img of legacy.images) {
+        // RPUSH each one to the list
+        await redis.rpush(CACHE_KEYS.GUEST_IMAGES_LIST, img);
+      }
+      // Zero out the legacy images to prevent re-migration
+      await redis.set('guest_metadata', { images: [] });
+      console.log('Migration of guest images complete.');
+    }
+  } catch (err) {
+    console.error('Migration error:', err);
+  }
+};
+migrateGuestMetadata();
 
 // Multer S3 Storage Configuration
 const createS3Storage = (folder) => multerS3({
@@ -118,6 +139,7 @@ const getPublicUrl = (key) => {
 
 // Admin Image Routes
 app.get('/api/images', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   try {
     // Check Cache
     const cached = await redis.get(CACHE_KEYS.ADMIN_IMAGES);
@@ -151,12 +173,15 @@ app.post('/api/upload', adminUpload.array('images'), async (req, res) => {
 
 // Guest Image Routes
 app.get('/api/guest-images', async (req, res) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
   try {
     // Check Cache
     const cached = await redis.get(CACHE_KEYS.GUEST_IMAGES);
     if (cached) return res.json(cached);
 
-    const meta = await getData('guest_metadata');
+    // Fetch from atomic list
+    const metaList = await redis.lrange(CACHE_KEYS.GUEST_IMAGES_LIST, 0, -1) || [];
+    
     const command = new ListObjectsV2Command({
       Bucket: BUCKET_NAME,
       Prefix: 'guest_uploads/',
@@ -167,7 +192,8 @@ app.get('/api/guest-images', async (req, res) => {
       .filter(item => item.Key !== 'guest_uploads/')
       .map(item => {
         const filename = item.Key.split('/').pop();
-        const metadata = meta.images.find(m => m.filename === filename);
+        // Find matching metadata in our list
+        const metadata = metaList.find(m => m.filename === filename);
         return {
           url: getPublicUrl(item.Key),
           filename: filename,
@@ -185,39 +211,29 @@ app.get('/api/guest-images', async (req, res) => {
   }
 });
 
-app.post('/api/guest-upload', guestUpload.array('images'), async (req, res) => {
-  const { owner } = req.body;
-  const meta = await getData('guest_metadata');
-  
-  const newImages = req.files.map(file => {
-    const filename = file.key.split('/').pop();
-    meta.images.push({ filename: filename, owner: owner || 'anonymous' });
-    return {
-      url: file.location,
-      filename: filename,
-      owner: owner || 'anonymous'
-    };
-  });
-  
-  await saveData('guest_metadata', meta);
-  // Clear Cache
-  await redis.del(CACHE_KEYS.GUEST_IMAGES);
-  res.json({ message: 'Upload successful', images: newImages });
-});
-
 // Direct-to-S3 (Tigris) Presigned URL Generation
 app.post('/api/generate-presigned-url', async (req, res) => {
   const { filename, contentType } = req.body;
+  
   if (!filename) return res.status(400).json({ error: 'Filename is required' });
 
-  const ext = filename.split('.').pop().toLowerCase();
+  // Rigidity: Server-side validation of file type
+  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/jpg'];
+  const normalizedType = (contentType || '').toLowerCase();
+  
+  if (normalizedType && !allowedTypes.includes(normalizedType)) {
+    return res.status(400).json({ error: 'Invalid file type. Only images are allowed.' });
+  }
+
+  const parts = filename.split('.');
+  const ext = parts.length > 1 ? parts.pop().toLowerCase() : 'jpg';
   const key = `guest_uploads/${uuidv4()}.${ext}`;
 
   try {
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
-      ContentType: contentType || 'image/jpeg',
+      ContentType: normalizedType || 'image/jpeg',
       ACL: 'public-read',
     });
 
@@ -235,16 +251,40 @@ app.post('/api/finalize-guest-upload', async (req, res) => {
   if (!key) return res.status(400).json({ error: 'Key is required' });
 
   try {
-    const meta = await getData('guest_metadata');
+    // 1. Rigidly verify the object exists in S3 before recording it
+    try {
+      await s3.send(new HeadObjectCommand({ Bucket: BUCKET_NAME, Key: key }));
+    } catch (s3Error) {
+      console.error(`S3 Verification failed for key: ${key}`, s3Error);
+      return res.status(400).json({ error: 'File was not successfully uploaded to cloud storage.' });
+    }
+
     const filename = key.split('/').pop();
     
+    // 2. Deduplication: Prevent duplicate entries if the browser retries
+    const metaList = await redis.lrange(CACHE_KEYS.GUEST_IMAGES_LIST, 0, -1) || [];
+    const exists = metaList.some(m => m.filename === filename);
+    
+    if (exists) {
+      return res.json({ 
+        success: true, 
+        image: {
+          url: getPublicUrl(key),
+          filename: filename,
+          owner: owner || 'anonymous'
+        }
+      });
+    }
+
     const newImage = { 
       filename: filename, 
       owner: owner || 'anonymous' 
     };
     
-    meta.images.push(newImage);
-    await saveData('guest_metadata', meta);
+    // 3. Atomic update using RPUSH (prevents race conditions)
+    await redis.rpush(CACHE_KEYS.GUEST_IMAGES_LIST, newImage);
+    
+    // Clear Cache
     await redis.del(CACHE_KEYS.GUEST_IMAGES);
 
     res.json({ 
@@ -274,16 +314,23 @@ app.delete('/api/images/:type/:filename', async (req, res) => {
     await s3.send(command);
 
     if (type === 'guest') {
-      const meta = await getData('guest_metadata');
-      if (meta && Array.isArray(meta.images)) {
-        meta.images = meta.images.filter(m => m.filename !== filename);
-        await saveData('guest_metadata', meta);
-      }
+      // 1. Clear the view cache immediately
       await redis.del(CACHE_KEYS.GUEST_IMAGES);
+      
+      // 2. Remove from atomic list
+      const metaList = await redis.lrange(CACHE_KEYS.GUEST_IMAGES_LIST, 0, -1) || [];
+      const itemToRemove = metaList.find(m => m.filename === filename);
+      if (itemToRemove) {
+        await redis.lrem(CACHE_KEYS.GUEST_IMAGES_LIST, 0, itemToRemove);
+      }
     } else {
       await redis.del(CACHE_KEYS.ADMIN_IMAGES);
     }
     
+    // Force a fresh fetch next time for all callers
+    await redis.del(CACHE_KEYS.GUEST_IMAGES);
+    await redis.del(CACHE_KEYS.ADMIN_IMAGES);
+
     res.json({ message: 'Deleted successfully' });
   } catch (error) {
     console.error('S3 Delete error:', error);

@@ -51,16 +51,14 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
       return;
     }
 
-    // Since we are bypassing Vercel and going direct to S3, we can allow more!
-    // Let's set a generous per-file limit of 10MB just for safety.
-    const MAX_FILE_SIZE = 10 * 1024 * 1024;
+    const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
     const fileList = Array.from(files);
     
     for (const file of fileList) {
       if (file.size > MAX_FILE_SIZE) {
         setAlert({ 
           type: 'error', 
-          message: `File "${file.name}" is too large (>${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB). Please choose smaller photos.` 
+          message: `File "${file.name}" is too large (>${(MAX_FILE_SIZE / 1024 / 1024).toFixed(0)}MB).` 
         });
         e.target.value = '';
         return;
@@ -68,12 +66,15 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
     }
 
     setIsUploading(true);
-    setAlert({ type: 'success', message: `Uploading ${files.length} memory${files.length > 1 ? 's' : ''} directly to cloud...` });
-
+    const totalFiles = fileList.length;
+    let completedCount = 0;
     const uploadedImages: GuestImage[] = [];
+    const failures: string[] = [];
 
-    try {
-      for (const file of fileList) {
+    // Controlled Concurrency: Process in batches of 2 to avoid crashing mobile browsers
+    const CONCURRENCY_LIMIT = 2;
+    const uploadTask = async (file: File) => {
+      try {
         // 1. Get Presigned URL
         const presignedRes = await fetch('/api/generate-presigned-url', {
           method: 'POST',
@@ -81,44 +82,68 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
           body: JSON.stringify({ filename: file.name, contentType: file.type }),
         });
 
-        if (!presignedRes.ok) throw new Error('Failed to get upload authorization');
+        if (!presignedRes.ok) throw new Error('Authorization failed');
         const { uploadUrl, key } = await presignedRes.json();
 
-        // 2. Upload Binary directly to S3 (Tigris)
+        // 2. Upload Binary directly to Tigris
         const uploadRes = await fetch(uploadUrl, {
           method: 'PUT',
           body: file,
-          headers: {
-            'Content-Type': file.type,
-          },
+          headers: { 'Content-Type': file.type },
         });
 
-        if (!uploadRes.ok) throw new Error(`Upload failed for ${file.name}`);
+        if (!uploadRes.ok) throw new Error('Cloud upload failed');
 
-        // 3. Finalize on our backend (save metadata)
+        // 3. Finalize
         const finalizeRes = await fetch('/api/finalize-guest-upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ key, owner: username }),
         });
 
-        if (finalizeRes.ok) {
-          const { image } = await finalizeRes.json();
-          uploadedImages.push(image);
-        }
+        if (!finalizeRes.ok) throw new Error('Finalization failed');
+        
+        const { image } = await finalizeRes.json();
+        uploadedImages.push(image);
+      } catch (error) {
+        console.error(`Failed to upload ${file.name}:`, error);
+        failures.push(file.name);
+      } finally {
+        completedCount++;
+        setAlert({ 
+          type: 'success', 
+          message: `Uploading your memories... (${completedCount}/${totalFiles})` 
+        });
       }
+    };
 
-      onAddImages(uploadedImages);
-      onRefresh(); // Re-fetch to confirm sync
-      setAlert({ type: 'success', message: `Successfully shared ${uploadedImages.length} moments!` });
-    } catch (error) {
-      console.error('Upload error:', error);
-      setAlert({ type: 'error', message: 'Something went wrong during cloud upload. Try again with fewer images.' });
-    } finally {
-      setIsUploading(false);
+    // Process tasks with concurrency limit
+    const queue = [...fileList];
+    const workers = Array(Math.min(CONCURRENCY_LIMIT, queue.length)).fill(null).map(async () => {
+      while (queue.length > 0) {
+        const file = queue.shift();
+        if (file) await uploadTask(file);
+      }
+    });
+
+    await Promise.all(workers);
+
+    onAddImages(uploadedImages);
+    onRefresh();
+
+    if (failures.length === 0) {
+      setAlert({ type: 'success', message: `Successfully shared all ${uploadedImages.length} moments!` });
+    } else if (uploadedImages.length > 0) {
+      setAlert({ 
+        type: 'error', 
+        message: `Uploaded ${uploadedImages.length} images, but ${failures.length} failed. Try uploading those again.` 
+      });
+    } else {
+      setAlert({ type: 'error', message: 'All uploads failed. Please check your connection and try again.' });
     }
 
-    setTimeout(() => setAlert(null), 5000);
+    setIsUploading(false);
+    setTimeout(() => setAlert(null), 6000);
     e.target.value = '';
   };
 
