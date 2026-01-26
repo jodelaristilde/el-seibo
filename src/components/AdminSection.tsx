@@ -110,18 +110,28 @@ const AdminSection = ({
     const uploadedUrls: string[] = [];
     const failures: string[] = [];
 
+    // Import utilities dynamically 
+    const { convertHeicToJpeg, getMimeType } = await import('../utils/fileUtils');
+
     // Controlled Concurrency: 2 at a time
     const CONCURRENCY_LIMIT = 2;
-    const uploadTask = async (file: File) => {
+    const uploadTask = async (originalFile: File) => {
       try {
+        // Convert HEIC to JPEG for better visibility across devices
+        const file = await convertHeicToJpeg(originalFile);
+        const contentType = file.type || getMimeType(file.name);
+
         // 1. Get Presigned URL
         const presignedRes = await fetch('/api/generate-presigned-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: file.name, contentType: file.type, type: 'admin' }),
+          body: JSON.stringify({ filename: file.name, contentType, type: 'admin' }),
         });
 
-        if (!presignedRes.ok) throw new Error('Authorization failed');
+        if (!presignedRes.ok) {
+          const err = await presignedRes.json();
+          throw new Error(err.error || 'Authorization failed');
+        }
         const { uploadUrl, key, publicUrl } = await presignedRes.json();
 
         // 2. Upload Binary
@@ -129,7 +139,7 @@ const AdminSection = ({
           method: 'PUT',
           body: file,
           headers: { 
-            'Content-Type': file.type,
+            'Content-Type': contentType,
             'x-amz-acl': 'public-read'
           },
         });
@@ -147,8 +157,8 @@ const AdminSection = ({
         
         uploadedUrls.push(publicUrl);
       } catch (error) {
-        console.error(`Admin upload error for ${file.name}:`, error);
-        failures.push(file.name);
+        console.error(`Admin upload error for ${originalFile.name}:`, error);
+        failures.push(originalFile.name);
       } finally {
         completedCount++;
         setAlert({ 

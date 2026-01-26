@@ -228,13 +228,26 @@ app.post('/api/generate-presigned-url', async (req, res) => {
   const prefix = type === 'admin' ? 'uploads' : 'guest_uploads';
   const parts = filename.split('.');
   const ext = parts.length > 1 ? parts.pop().toLowerCase() : 'jpg';
+  
+  // Robust Content-Type fallback for server-side signing
+  const mimeMap = {
+    'jpg': 'image/jpeg',
+    'jpeg': 'image/jpeg',
+    'png': 'image/png',
+    'gif': 'image/gif',
+    'webp': 'image/webp',
+    'heic': 'image/heic',
+    'heif': 'image/heif'
+  };
+  const finalContentType = normalizedType || mimeMap[ext] || 'image/jpeg';
+
   const key = `${prefix}/${uuidv4()}.${ext}`;
 
   try {
     const command = new PutObjectCommand({
       Bucket: BUCKET_NAME,
       Key: key,
-      ContentType: normalizedType || 'image/jpeg',
+      ContentType: finalContentType,
       ACL: 'public-read', // This requires x-amz-acl header in PUT request
     });
 

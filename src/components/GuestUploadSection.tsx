@@ -71,18 +71,28 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
     const uploadedImages: GuestImage[] = [];
     const failures: string[] = [];
 
+    // Import utilities dynamically to keep the component light
+    const { convertHeicToJpeg, getMimeType } = await import('../utils/fileUtils');
+
     // Controlled Concurrency: Process in batches of 2 to avoid crashing mobile browsers
     const CONCURRENCY_LIMIT = 2;
-    const uploadTask = async (file: File) => {
+    const uploadTask = async (originalFile: File) => {
       try {
+        // Safari/iOS fix: Convert HEIC to JPEG for better visibility and reliability
+        const file = await convertHeicToJpeg(originalFile);
+        const contentType = file.type || getMimeType(file.name);
+
         // 1. Get Presigned URL
         const presignedRes = await fetch('/api/generate-presigned-url', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: file.name, contentType: file.type, type: 'guest' }),
+          body: JSON.stringify({ filename: file.name, contentType, type: 'guest' }),
         });
 
-        if (!presignedRes.ok) throw new Error('Authorization failed');
+        if (!presignedRes.ok) {
+          const err = await presignedRes.json();
+          throw new Error(err.error || 'Authorization failed');
+        }
         const { uploadUrl, key } = await presignedRes.json();
 
         // 2. Upload Binary directly to Tigris
@@ -90,7 +100,7 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
           method: 'PUT',
           body: file,
           headers: { 
-            'Content-Type': file.type,
+            'Content-Type': contentType,
             'x-amz-acl': 'public-read' // Crucial for Tigris/S3 when ACL is used in signing
           },
         });
@@ -109,8 +119,8 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
         const { image } = await finalizeRes.json();
         uploadedImages.push(image);
       } catch (error) {
-        console.error(`Failed to upload ${file.name}:`, error);
-        failures.push(file.name);
+        console.error(`Failed to upload ${originalFile.name}:`, error);
+        failures.push(originalFile.name);
       } finally {
         completedCount++;
         setAlert({ 
