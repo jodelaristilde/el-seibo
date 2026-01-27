@@ -259,7 +259,12 @@ app.post('/api/generate-presigned-url', async (req, res) => {
     return res.status(400).json({ error: 'Invalid file type. Only images and videos are allowed.' });
   }
 
-  const prefix = type === 'admin' ? 'uploads' : 'guest_uploads';
+  const prefixMap = {
+    admin: 'uploads',
+    guest: 'guest_uploads',
+    site_asset: 'site_assets'
+  };
+  const prefix = prefixMap[type] || 'uploads';
   const parts = filename.split('.');
   const ext = parts.length > 1 ? parts.pop().toLowerCase() : 'jpg';
   
@@ -320,10 +325,11 @@ app.post('/api/finalize-upload', async (req, res) => {
         await redis.rpush(CACHE_KEYS.GUEST_IMAGES_LIST, { filename, owner: owner || 'anonymous' });
       }
       await redis.del(CACHE_KEYS.GUEST_IMAGES);
-    } else {
-      // For admins, we just clear the main gallery cache
+    } else if (type === 'admin') {
+      // For main gallery admin uploads, we clear the main gallery cache
       await redis.del(CACHE_KEYS.ADMIN_IMAGES);
     }
+    // Note: for site_asset, we don't clear the admin images cache as they are kept separate.
 
     res.json({ 
       success: true, 

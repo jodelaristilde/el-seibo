@@ -23,9 +23,7 @@ const Logo = () => (
 );
 
 function App() {
-  const [activeSection, setActiveSection] = useState(() => {
-    return localStorage.getItem('activeSection') || 'home';
-  });
+  const [activeSection, setActiveSection] = useState('home');
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
     return localStorage.getItem('isAdminLoggedIn') === 'true';
   });
@@ -38,7 +36,6 @@ function App() {
   }, [activeSection]);
 
   useEffect(() => {
-    localStorage.setItem('activeSection', activeSection);
     setIsMenuOpen(false); // Close menu when section changes
   }, [activeSection]);
 

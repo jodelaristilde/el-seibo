@@ -1,4 +1,5 @@
 import EditableText from './EditableText';
+import HomeBanner from './HomeBanner';
 
 const HomeSection = ({ isAdmin }: { isAdmin: boolean }) => (
   <section id="home">
@@ -16,6 +17,9 @@ const HomeSection = ({ isAdmin }: { isAdmin: boolean }) => (
         tagName="p" 
       />
     </div>
+
+    <HomeBanner isAdmin={isAdmin} />
+
     <div className="container" style={{ marginTop: '2rem' }}>
       <EditableText 
         contentKey="home_welcome_title" 
