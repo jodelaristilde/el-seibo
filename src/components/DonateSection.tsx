@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
+import EditableText from './EditableText';
 
-const DonateSection = () => {
+const DonateSection = ({ isAdmin }: { isAdmin: boolean }) => {
   const [amount, setAmount] = useState('');
   const [name, setName] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -77,25 +78,35 @@ const DonateSection = () => {
   return (
     <section id="donate">
       <div className="container">
-        <h2 className="section-title">Make a Donation</h2>
+        <EditableText 
+          contentKey="donate_title" 
+          defaultText="Make a Donation" 
+          isAdmin={isAdmin} 
+          tagName="h2" 
+          className="section-title"
+        />
         
-        <p style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 2rem' }}>
-          Your generous donation directly impacts lives in El Seibo. Every contribution helps us provide essential 
-          medical care, medications, and hope to families in the batey communities.
-        </p>
+        <EditableText 
+          contentKey="donate_intro" 
+          defaultText="Your generous donation directly impacts lives in El Seibo. Every contribution helps us provide essential medical care, medications, and hope to families in the batey communities." 
+          isAdmin={isAdmin} 
+          tagName="p" 
+          multiline={true}
+          style={{ textAlign: 'center', maxWidth: '800px', margin: '0 auto 2rem' }}
+        />
 
         <div className="impact-stats">
           <div className="stat-item">
-            <div className="stat-number">5,000+</div>
-            <div className="stat-label">Patients Served Annually</div>
+            <EditableText contentKey="stat_patients_num" defaultText="5,000+" isAdmin={isAdmin} tagName="div" className="stat-number" />
+            <EditableText contentKey="stat_patients_label" defaultText="Patients Served Annually" isAdmin={isAdmin} tagName="div" className="stat-label" />
           </div>
           <div className="stat-item">
-            <div className="stat-number">15+</div>
-            <div className="stat-label">Batey Communities Reached</div>
+            <EditableText contentKey="stat_bateys_num" defaultText="15+" isAdmin={isAdmin} tagName="div" className="stat-number" />
+            <EditableText contentKey="stat_bateys_label" defaultText="Batey Communities Reached" isAdmin={isAdmin} tagName="div" className="stat-label" />
           </div>
           <div className="stat-item">
-            <div className="stat-number">100+</div>
-            <div className="stat-label">Volunteers Each Year</div>
+            <EditableText contentKey="stat_volunteers_num" defaultText="100+" isAdmin={isAdmin} tagName="div" className="stat-number" />
+            <EditableText contentKey="stat_volunteers_label" defaultText="Volunteers Each Year" isAdmin={isAdmin} tagName="div" className="stat-label" />
           </div>
         </div>
 
@@ -103,24 +114,24 @@ const DonateSection = () => {
         
         <div className="donation-options">
           <div className={`donation-card ${amount === '50' ? 'active' : ''}`} onClick={() => setAmount('50')} style={{ border: amount === '50' ? '2px solid #2c5aa0' : '1px solid #ddd' }}>
-            <h3>$50</h3>
-            <p><strong>Provides medications</strong></p>
-            <p>for 5 patients with chronic conditions</p>
+            <EditableText contentKey="tier1_amount" defaultText="$50" isAdmin={isAdmin} tagName="h3" />
+            <EditableText contentKey="tier1_title" defaultText="Provides medications" isAdmin={isAdmin} tagName="p" style={{ fontWeight: 'bold' }} />
+            <EditableText contentKey="tier1_text" defaultText="for 5 patients with chronic conditions" isAdmin={isAdmin} tagName="p" />
           </div>
           <div className={`donation-card ${amount === '100' ? 'active' : ''}`} onClick={() => setAmount('100')} style={{ border: amount === '100' ? '2px solid #2c5aa0' : '1px solid #ddd' }}>
-            <h3>$100</h3>
-            <p><strong>Supplies a medical clinic</strong></p>
-            <p>with essential equipment for one day</p>
+            <EditableText contentKey="tier2_amount" defaultText="$100" isAdmin={isAdmin} tagName="h3" />
+            <EditableText contentKey="tier2_title" defaultText="Supplies a medical clinic" isAdmin={isAdmin} tagName="p" style={{ fontWeight: 'bold' }} />
+            <EditableText contentKey="tier2_text" defaultText="with essential equipment for one day" isAdmin={isAdmin} tagName="p" />
           </div>
           <div className={`donation-card ${amount === '250' ? 'active' : ''}`} onClick={() => setAmount('250')} style={{ border: amount === '250' ? '2px solid #2c5aa0' : '1px solid #ddd' }}>
-            <h3>$250</h3>
-            <p><strong>Sponsors comprehensive care</strong></p>
-            <p>for an entire family including dental and vision</p>
+            <EditableText contentKey="tier3_amount" defaultText="$250" isAdmin={isAdmin} tagName="h3" />
+            <EditableText contentKey="tier3_title" defaultText="Sponsors comprehensive care" isAdmin={isAdmin} tagName="p" style={{ fontWeight: 'bold' }} />
+            <EditableText contentKey="tier3_text" defaultText="for an entire family including dental and vision" isAdmin={isAdmin} tagName="p" />
           </div>
           <div className={`donation-card ${amount === '500' ? 'active' : ''}`} onClick={() => setAmount('500')} style={{ border: amount === '500' ? '2px solid #2c5aa0' : '1px solid #ddd' }}>
-            <h3>$500</h3>
-            <p><strong>Funds a mission trip</strong></p>
-            <p>for one volunteer healthcare provider</p>
+            <EditableText contentKey="tier4_amount" defaultText="$500" isAdmin={isAdmin} tagName="h3" />
+            <EditableText contentKey="tier4_title" defaultText="Funds a mission trip" isAdmin={isAdmin} tagName="p" style={{ fontWeight: 'bold' }} />
+            <EditableText contentKey="tier4_text" defaultText="for one volunteer healthcare provider" isAdmin={isAdmin} tagName="p" />
           </div>
         </div>
 
@@ -168,19 +179,29 @@ const DonateSection = () => {
         </div>
 
         <div style={{ background: '#f8f9fa', padding: '2rem', borderRadius: '8px', marginTop: '3rem', borderLeft: '4px solid #2c5aa0' }}>
-          <h3 style={{ color: '#2c5aa0', marginBottom: '1rem' }}>Other Ways to Support</h3>
+          <EditableText 
+            contentKey="other_support_title" 
+            defaultText="Other Ways to Support" 
+            isAdmin={isAdmin} 
+            tagName="h3" 
+            style={{ color: '#2c5aa0', marginBottom: '1rem' }}
+          />
           <ul style={{ marginLeft: '1.5rem', lineHeight: '2' }}>
-            <li><strong>Medical Supplies:</strong> Donate unused medical equipment and supplies</li>
-            <li><strong>In-Kind Donations:</strong> Contribute medications, vitamins, or medical consumables</li>
-            <li><strong>Volunteer:</strong> Join us on a mission trip and serve with your skills</li>
-            <li><strong>Legacy Giving:</strong> Include El Seibo Mission in your estate planning</li>
+            <li><EditableText contentKey="support_way1" defaultText="Medical Supplies: Donate unused medical equipment and supplies" isAdmin={isAdmin} tagName="span" /></li>
+            <li><EditableText contentKey="support_way2" defaultText="In-Kind Donations: Contribute medications, vitamins, or medical consumables" isAdmin={isAdmin} tagName="span" /></li>
+            <li><EditableText contentKey="support_way3" defaultText="Volunteer: Join us on a mission trip and serve with your skills" isAdmin={isAdmin} tagName="span" /></li>
+            <li><EditableText contentKey="support_way4" defaultText="Legacy Giving: Include El Seibo Mission in your estate planning" isAdmin={isAdmin} tagName="span" /></li>
           </ul>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: '2rem', color: '#666', fontStyle: 'italic' }}>
-          "For I was hungry and you gave me food, I was thirsty and you gave me drink, I was a stranger and you welcomed me, 
-          I was naked and you clothed me, I was sick and you visited me..." - Matthew 25:35-36
-        </p>
+        <EditableText 
+          contentKey="donate_footer_verse" 
+          defaultText='"For I was hungry and you gave me food, I was thirsty and you gave me drink, I was a stranger and you welcomed me, I was naked and you clothed me, I was sick and you visited me..." - Matthew 25:35-36' 
+          isAdmin={isAdmin} 
+          tagName="p" 
+          multiline={true}
+          style={{ textAlign: 'center', marginTop: '2rem', color: '#666', fontStyle: 'italic' }}
+        />
       </div>
     </section>
   );

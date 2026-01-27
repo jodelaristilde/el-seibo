@@ -9,6 +9,8 @@ import SponsorsSection from './components/SponsorsSection';
 import DonateSection from './components/DonateSection';
 import ContactSection from './components/ContactSection';
 import AdminSection from './components/AdminSection';
+import { ContentProvider } from './components/ContentProvider';
+import EditableText from './components/EditableText';
 
 export interface GuestImage {
   url: string;
@@ -17,22 +19,7 @@ export interface GuestImage {
 }
 
 const Logo = () => (
-  <svg className="logo" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
-    <circle cx="50" cy="50" r="48" fill="#ffffff" stroke="#2c5aa0" strokeWidth="2"/>
-    <rect x="45" y="25" width="10" height="50" fill="#2c5aa0" rx="2"/>
-    <rect x="25" y="45" width="50" height="10" fill="#2c5aa0" rx="2"/>
-    <path d="M 50 42 C 50 42, 45 35, 40 35 C 35 35, 32 38, 32 42 C 32 48, 50 58, 50 58 C 50 58, 68 48, 68 42 C 68 38, 65 35, 60 35 C 55 35, 50 42, 50 42 Z" fill="#e74c3c" opacity="0.9"/>
-    <path d="M 30 70 Q 35 75, 40 70 L 38 68 Q 35 71, 32 68 Z" fill="#f39c12"/>
-    <path d="M 60 70 Q 65 75, 70 70 L 68 68 Q 65 71, 62 68 Z" fill="#f39c12"/>
-    <rect x="20" y="20" width="3" height="8" fill="#002d62"/>
-    <rect x="20" y="28" width="3" height="8" fill="#ce1126"/>
-    <path id="curve" d="M 15,50 A 35,35 0 0,1 85,50" fill="none"/>
-    <text fontSize="8" fill="#2c5aa0" fontWeight="bold">
-      <textPath href="#curve" startOffset="50%" textAnchor="middle">
-        SERVING WITH LOVE
-      </textPath>
-    </text>
-  </svg>
+  <img src="/logo.png" alt="El Seibo Mission Logo" className="logo" style={{ height: '50px', width: 'auto' }} />
 );
 
 function App() {
@@ -111,15 +98,27 @@ function App() {
   };
 
   return (
-    <div className="app-container">
+    <ContentProvider>
+      <div className="app-container">
       <header>
         <div className="container">
           <div className="header-content">
             <div className="logo-container">
               <Logo />
               <div className="header-text">
-                <h1>El Seibo Mission</h1>
-                <p className="tagline">Serving with compassion in the Dominican Republic</p>
+                <EditableText 
+                  contentKey="site_title" 
+                  defaultText="El Seibo Mission" 
+                  isAdmin={isAdminLoggedIn} 
+                  tagName="h1" 
+                />
+                <EditableText 
+                  contentKey="site_tagline" 
+                  defaultText="Serving with compassion in the Dominican Republic" 
+                  isAdmin={isAdminLoggedIn} 
+                  tagName="p" 
+                  className="tagline"
+                />
               </div>
             </div>
             <button 
@@ -150,9 +149,9 @@ function App() {
       </nav>
 
       <main>
-        {activeSection === 'home' && <HomeSection />}
-        {activeSection === 'about' && <AboutSection />}
-        {activeSection === 'services' && <ServicesSection />}
+        {activeSection === 'home' && <HomeSection isAdmin={isAdminLoggedIn} />}
+        {activeSection === 'about' && <AboutSection isAdmin={isAdminLoggedIn} />}
+        {activeSection === 'services' && <ServicesSection isAdmin={isAdminLoggedIn} />}
         {activeSection === 'images' && <ImagesSection uploadedImages={adminImages} />}
         {activeSection === 'guest-upload' && (
           <GuestUploadSection 
@@ -162,9 +161,9 @@ function App() {
             guestImages={guestImages} 
           />
         )}
-        {activeSection === 'sponsors' && <SponsorsSection onContactClick={() => setActiveSection('contact')} />}
-        {activeSection === 'donate' && <DonateSection />}
-        {activeSection === 'contact' && <ContactSection />}
+        {activeSection === 'sponsors' && <SponsorsSection onContactClick={() => setActiveSection('contact')} isAdmin={isAdminLoggedIn} />}
+        {activeSection === 'donate' && <DonateSection isAdmin={isAdminLoggedIn} />}
+        {activeSection === 'contact' && <ContactSection isAdmin={isAdminLoggedIn} />}
         {activeSection === 'admin' && (
           <AdminSection 
             onAddImages={handleAddAdminImages} 
@@ -181,11 +180,23 @@ function App() {
 
       <footer>
         <div className="container">
-          <p>&copy; 2026 El Seibo Mission. Serving with love and compassion.</p>
-          <p style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}>Matthew 25:40 - "Whatever you did for one of the least of these brothers and sisters of mine, you did for me."</p>
+          <EditableText 
+            contentKey="footer_copy" 
+            defaultText="© 2026 El Seibo Mission. Serving with love and compassion." 
+            isAdmin={isAdminLoggedIn} 
+            tagName="p" 
+          />
+          <EditableText 
+            contentKey="footer_verse" 
+            defaultText='Matthew 25:40 - "Whatever you did for one of the least of these brothers and sisters of mine, you did for me."' 
+            isAdmin={isAdminLoggedIn} 
+            tagName="p" 
+            style={{ marginTop: '0.5rem', fontSize: '0.9rem' }}
+          />
         </div>
       </footer>
     </div>
+    </ContentProvider>
   );
 }
 

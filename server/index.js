@@ -40,6 +40,7 @@ const CACHE_KEYS = {
   ADMIN_IMAGES: 'cache:admin_images',
   GUEST_IMAGES: 'cache:guest_images',
   GUEST_IMAGES_LIST: 'guest_images_list', // Atomic list key
+  SITE_CONTENT: 'site_content',
 };
 const CACHE_TTL = 3600; // 1 hour in seconds
 
@@ -161,6 +162,32 @@ app.get('/api/images', async (req, res) => {
   } catch (error) {
     console.error('S3 List error:', error);
     res.status(500).json({ error: 'Failed to list images' });
+  }
+});
+
+// Site Content Routes
+app.get('/api/content', async (req, res) => {
+  try {
+    const content = await redis.get(CACHE_KEYS.SITE_CONTENT) || {};
+    res.json(content);
+  } catch (error) {
+    console.error('Failed to get site content:', error);
+    res.status(500).json({ error: 'Failed to get site content' });
+  }
+});
+
+app.post('/api/content', async (req, res) => {
+  const { key, value } = req.body;
+  if (!key) return res.status(400).json({ error: 'Key is required' });
+
+  try {
+    const content = await redis.get(CACHE_KEYS.SITE_CONTENT) || {};
+    content[key] = value;
+    await redis.set(CACHE_KEYS.SITE_CONTENT, content);
+    res.json({ success: true, content });
+  } catch (error) {
+    console.error('Failed to save site content:', error);
+    res.status(500).json({ error: 'Failed to save site content' });
   }
 });
 
