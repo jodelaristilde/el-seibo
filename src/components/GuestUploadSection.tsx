@@ -171,6 +171,15 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
     document.body.style.overflow = 'auto';
   };
 
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 12;
+
+  const totalPages = Math.ceil(guestImages.length / itemsPerPage);
+  const currentItems = guestImages.slice(
+    (currentPage - 1) * itemsPerPage,
+    currentPage * itemsPerPage
+  );
+
   const myPhotos = guestImages.filter(img => img.owner === username);
 
   return (
@@ -267,7 +276,7 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
               {!isUnlocked && <p style={{ marginTop: '1rem' }}>Be the first to share! Click "Guest Upload" to begin.</p>}
             </div>
           ) : (
-            guestImages.map((img, index) => (
+            currentItems.map((img, index) => (
               <div key={img.url} className="gallery-item" onClick={() => openLightbox(img.url)} style={{ cursor: 'pointer', position: 'relative' }}>
                 {isVideoUrl(img.url) ? (
                   <video 
@@ -287,6 +296,26 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
             ))
           )}
         </div>
+
+        {totalPages > 1 && (
+          <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '3rem' }}>
+            <button 
+              disabled={currentPage === 1} 
+              onClick={() => setCurrentPage(p => p - 1)}
+              style={{ padding: '0.6rem 1.2rem', background: currentPage === 1 ? '#ccc' : '#2c5aa0' }}
+            >
+              Previous
+            </button>
+            <span style={{ fontWeight: '600', color: '#666' }}>Page {currentPage} of {totalPages}</span>
+            <button 
+              disabled={currentPage === totalPages} 
+              onClick={() => setCurrentPage(p => p + 1)}
+              style={{ padding: '0.6rem 1.2rem', background: currentPage === totalPages ? '#ccc' : '#2c5aa0' }}
+            >
+              Next
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Login Modal */}

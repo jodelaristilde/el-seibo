@@ -322,10 +322,22 @@ const AdminSection = ({
                     ))}
                   </div>
                   {totalAdminPages > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '2rem' }}>
-                      <button disabled={currentAdminPage === 1} onClick={() => setCurrentAdminPage(p => p - 1)}>Prev</button>
-                      <span style={{ alignSelf: 'center' }}>Page {currentAdminPage} of {totalAdminPages}</span>
-                      <button disabled={currentAdminPage === totalAdminPages} onClick={() => setCurrentAdminPage(p => p + 1)}>Next</button>
+                    <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '2.5rem' }}>
+                      <button 
+                        disabled={currentAdminPage === 1} 
+                        onClick={() => setCurrentAdminPage((p: number) => p - 1)}
+                        style={{ padding: '0.5rem 1rem', background: currentAdminPage === 1 ? '#ccc' : '#2c5aa0' }}
+                      >
+                        Previous
+                      </button>
+                      <span style={{ fontWeight: '600', color: '#666' }}>Page {currentAdminPage} of {totalAdminPages}</span>
+                      <button 
+                        disabled={currentAdminPage === totalAdminPages} 
+                        onClick={() => setCurrentAdminPage((p: number) => p + 1)}
+                        style={{ padding: '0.5rem 1rem', background: currentAdminPage === totalAdminPages ? '#ccc' : '#2c5aa0' }}
+                      >
+                        Next
+                      </button>
                     </div>
                   )}
                 </div>
@@ -351,10 +363,22 @@ const AdminSection = ({
                     ))}
                   </div>
                   {totalGuestPages > 1 && (
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '2rem' }}>
-                      <button disabled={currentGuestPage === 1} onClick={() => setCurrentGuestPage(p => p - 1)}>Prev</button>
-                      <span style={{ alignSelf: 'center' }}>Page {currentGuestPage} of {totalGuestPages}</span>
-                      <button disabled={currentGuestPage === totalGuestPages} onClick={() => setCurrentGuestPage(p => p + 1)}>Next</button>
+                    <div className="pagination" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '1rem', marginTop: '2.5rem' }}>
+                      <button 
+                        disabled={currentGuestPage === 1} 
+                        onClick={() => setCurrentGuestPage((p: number) => p - 1)}
+                        style={{ padding: '0.5rem 1rem', background: currentGuestPage === 1 ? '#ccc' : '#2c5aa0' }}
+                      >
+                        Previous
+                      </button>
+                      <span style={{ fontWeight: '600', color: '#666' }}>Page {currentGuestPage} of {totalGuestPages}</span>
+                      <button 
+                        disabled={currentGuestPage === totalGuestPages} 
+                        onClick={() => setCurrentGuestPage((p: number) => p + 1)}
+                        style={{ padding: '0.5rem 1rem', background: currentGuestPage === totalGuestPages ? '#ccc' : '#2c5aa0' }}
+                      >
+                        Next
+                      </button>
                     </div>
                   )}
               </div>
