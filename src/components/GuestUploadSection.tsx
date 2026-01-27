@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent } from 'react';
 import { type GuestImage } from '../App';
+import { isVideoUrl } from '../utils/fileUtils';
 
 interface GuestUploadSectionProps {
   onAddImages: (images: GuestImage[]) => void;
@@ -51,7 +52,7 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
       return;
     }
 
-    const MAX_FILE_SIZE = 15 * 1024 * 1024; // 15MB
+    const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB (increased for videos)
     const fileList = Array.from(files);
     
     for (const file of fileList) {
@@ -182,7 +183,7 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
           </div>
           {!isUnlocked ? (
             <button onClick={() => setShowLoginModal(true)} style={{ background: '#2c5aa0' }}>
-              Guest Upload
+              Guests Upload
             </button>
           ) : (
             <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
@@ -202,7 +203,7 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
               <div className="form-group" style={{ maxWidth: '400px', margin: '0 auto' }}>
                 <input 
                   type="file" 
-                  accept="image/*,.heic,.heif" 
+                  accept="image/*,video/*,.heic,.heif" 
                   multiple 
                   onChange={handleUpload} 
                   disabled={isUploading} 
@@ -219,7 +220,18 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
               ) : (
                 myPhotos.map((img, index) => (
                   <div key={img.url} className="gallery-item" style={{ position: 'relative' }}>
-                    <img src={img.url} alt={`Mine ${index}`} onClick={() => openLightbox(img.url)} style={{ cursor: 'pointer' }} />
+                    {isVideoUrl(img.url) ? (
+                      <video 
+                        src={img.url} 
+                        onClick={() => openLightbox(img.url)} 
+                        muted
+                        playsInline
+                        preload="metadata"
+                        style={{ cursor: 'pointer', width: '100%', height: '100%', objectFit: 'cover' }} 
+                      />
+                    ) : (
+                      <img src={img.url} alt={`Mine ${index}`} onClick={() => openLightbox(img.url)} style={{ cursor: 'pointer' }} />
+                    )}
                     <button 
                       onClick={() => onDeleteImage(img.url)}
                       style={{ 
@@ -257,7 +269,17 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
           ) : (
             guestImages.map((img, index) => (
               <div key={img.url} className="gallery-item" onClick={() => openLightbox(img.url)} style={{ cursor: 'pointer', position: 'relative' }}>
-                <img src={img.url} alt={`Mission Guest ${index}`} />
+                {isVideoUrl(img.url) ? (
+                  <video 
+                    src={img.url} 
+                    muted
+                    playsInline
+                    preload="metadata"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+                  />
+                ) : (
+                  <img src={img.url} alt={`Mission Guest ${index}`} />
+                )}
                 <div style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(255,255,255,0.8)', color: '#333', fontSize: '0.65rem', padding: '4px', textAlign: 'center', fontWeight: '600' }}>
                   By: {img.owner}
                 </div>
@@ -272,7 +294,7 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
         <div className="modal-overlay" onClick={() => setShowLoginModal(false)} style={{ alignItems: 'center', display: 'flex', justifyContent: 'center' }}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ background: 'white', padding: '2.5rem', borderRadius: '12px', maxWidth: '450px', width: '90%', height: 'auto', boxShadow: '0 10px 40px rgba(0,0,0,0.3)', display: 'block' }}>
             <button className="modal-close" onClick={() => setShowLoginModal(false)} style={{ color: '#333', top: '15px', right: '15px', fontSize: '1.5rem' }}>&times;</button>
-            <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#2c5aa0', fontSize: '1.8rem', fontWeight: 'bold' }}>Guest Upload Access</h2>
+            <h2 style={{ textAlign: 'center', marginBottom: '1.5rem', color: '#2c5aa0', fontSize: '1.8rem', fontWeight: 'bold' }}>Guests Upload Access</h2>
             <form onSubmit={(e) => { e.preventDefault(); handleLogin(); }} className="login-form" style={{ boxShadow: 'none', padding: 0, background: 'transparent' }}>
               <p style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '0.9rem', color: '#666', lineHeight: '1.4' }}>Enter your name and the guest password provided by the mission admin.</p>
               <div className="form-group" style={{ marginBottom: '1.2rem' }}>
@@ -312,7 +334,11 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
         <div className="modal-overlay" onClick={closeLightbox}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={closeLightbox}>&times;</button>
-            <img src={selectedImage} alt="Fullscreen View" />
+            {isVideoUrl(selectedImage) ? (
+              <video src={selectedImage} controls autoPlay style={{ maxWidth: '100%', maxHeight: '90vh' }} />
+            ) : (
+              <img src={selectedImage} alt="Fullscreen View" />
+            )}
           </div>
         </div>
       )}

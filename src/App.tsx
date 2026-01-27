@@ -72,11 +72,11 @@ function App() {
   };
 
   const handleAddAdminImages = (newImages: string[]) => {
-    setAdminImages(prev => [...prev, ...newImages]);
+    setAdminImages(prev => [...newImages, ...prev]);
   };
 
   const handleAddGuestImages = (newImages: GuestImage[]) => {
-    setGuestImages(prev => [...prev, ...newImages]);
+    setGuestImages(prev => [...newImages, ...prev]);
   };
 
   const handleDeleteImage = async (imageUrl: string, type: 'admin' | 'guest') => {
@@ -139,7 +139,7 @@ function App() {
             <li><a className={activeSection === 'about' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('about')}>About</a></li>
             <li><a className={activeSection === 'services' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('services')}>Services</a></li>
             <li><a className={activeSection === 'images' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('images')}>Images</a></li>
-            <li><a className={activeSection === 'guest-upload' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('guest-upload')}>Guests</a></li>
+            <li><a className={activeSection === 'guest-upload' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('guest-upload')}>Guests Upload</a></li>
             <li><a className={activeSection === 'sponsors' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('sponsors')}>Sponsors</a></li>
             <li><a className={activeSection === 'donate' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('donate')}>Donate</a></li>
             <li><a className={activeSection === 'contact' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('contact')}>Contact</a></li>

@@ -10,8 +10,20 @@ export const getMimeType = (filename: string, fallback: string = 'image/jpeg'): 
     'webp': 'image/webp',
     'heic': 'image/heic',
     'heif': 'image/heif',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'mov': 'video/quicktime',
+    'm4v': 'video/x-m4v',
+    'mkv': 'video/x-matroska',
   };
   return (ext && mimeTypes[ext]) || fallback;
+};
+
+export const isVideoUrl = (url: string | null): boolean => {
+  if (!url) return false;
+  const videoExtensions = ['.mp4', '.webm', '.mov', '.m4v', '.mkv'];
+  const lowercaseUrl = url.toLowerCase();
+  return videoExtensions.some(ext => lowercaseUrl.endsWith(ext) || lowercaseUrl.includes(`${ext}?`));
 };
 
 export const convertHeicToJpeg = async (file: File): Promise<File> => {

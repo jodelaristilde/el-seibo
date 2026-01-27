@@ -151,9 +151,11 @@ app.get('/api/images', async (req, res) => {
       Prefix: 'uploads/',
     });
     const { Contents } = await s3.send(command);
-    const imageUrls = (Contents || [])
+    const sortedContents = (Contents || [])
       .filter(item => item.Key !== 'uploads/')
-      .map(item => getPublicUrl(item.Key));
+      .sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified));
+    
+    const imageUrls = sortedContents.map(item => getPublicUrl(item.Key));
     
     // Set Cache
     await redis.set(CACHE_KEYS.ADMIN_IMAGES, imageUrls, { ex: CACHE_TTL });
@@ -215,9 +217,11 @@ app.get('/api/guest-images', async (req, res) => {
     });
     const { Contents } = await s3.send(command);
     
-    const guestImages = (Contents || [])
+    const sortedContents = (Contents || [])
       .filter(item => item.Key !== 'guest_uploads/')
-      .map(item => {
+      .sort((a, b) => new Date(b.LastModified) - new Date(a.LastModified));
+
+    const guestImages = sortedContents.map(item => {
         const filename = item.Key.split('/').pop();
         // Find matching metadata in our list
         const metadata = metaList.find(m => m.filename === filename);
@@ -245,11 +249,14 @@ app.post('/api/generate-presigned-url', async (req, res) => {
   if (!filename) return res.status(400).json({ error: 'Filename is required' });
 
   // Rigidity: Server-side validation of file type
-  const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/jpg'];
+  const allowedTypes = [
+    'image/jpeg', 'image/png', 'image/gif', 'image/webp', 'image/heic', 'image/heif', 'image/jpg',
+    'video/mp4', 'video/webm', 'video/quicktime', 'video/x-matroska'
+  ];
   const normalizedType = (contentType || '').toLowerCase();
   
   if (normalizedType && !allowedTypes.includes(normalizedType)) {
-    return res.status(400).json({ error: 'Invalid file type. Only images are allowed.' });
+    return res.status(400).json({ error: 'Invalid file type. Only images and videos are allowed.' });
   }
 
   const prefix = type === 'admin' ? 'uploads' : 'guest_uploads';
@@ -264,9 +271,13 @@ app.post('/api/generate-presigned-url', async (req, res) => {
     'gif': 'image/gif',
     'webp': 'image/webp',
     'heic': 'image/heic',
-    'heif': 'image/heif'
+    'heif': 'image/heif',
+    'mp4': 'video/mp4',
+    'webm': 'video/webm',
+    'mov': 'video/quicktime',
+    'mkv': 'video/matroska'
   };
-  const finalContentType = normalizedType || mimeMap[ext] || 'image/jpeg';
+  const finalContentType = normalizedType || mimeMap[ext] || 'application/octet-stream';
 
   const key = `${prefix}/${uuidv4()}.${ext}`;
 

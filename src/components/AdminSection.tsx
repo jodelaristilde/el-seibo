@@ -1,5 +1,6 @@
 import { useState, type ChangeEvent, useEffect } from 'react';
 import { type GuestImage } from '../App';
+import { isVideoUrl } from '../utils/fileUtils';
 
 interface User {
   username: string;
@@ -90,7 +91,7 @@ const AdminSection = ({
       return;
     }
 
-    const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB for admin
+    const MAX_FILE_SIZE = 100 * 1024 * 1024; // 100MB for admin (increased for videos)
     const fileList = Array.from(files);
     
     for (const file of fileList) {
@@ -284,9 +285,9 @@ const AdminSection = ({
             </div>
             
             <div style={{ display: 'flex', gap: '1rem', marginBottom: '2rem', borderBottom: '2px solid #eee', paddingBottom: '1rem' }}>
-                <button onClick={() => setActiveTab('images')} style={{ background: activeTab === 'images' ? '#2c5aa0' : '#ccc', flex: 1 }}>Gallery Images</button>
-                <button onClick={() => setActiveTab('guests')} style={{ background: activeTab === 'guests' ? '#2c5aa0' : '#ccc', flex: 1 }}>Guest Photos</button>
-                <button onClick={() => setActiveTab('users')} style={{ background: activeTab === 'users' ? '#f39c12' : '#ccc', flex: 1 }}>Manage Guest Passwords</button>
+                <button onClick={() => setActiveTab('images')} style={{ background: activeTab === 'images' ? '#2c5aa0' : '#ccc', flex: 1 }}>Gallery Content</button>
+                <button onClick={() => setActiveTab('guests')} style={{ background: activeTab === 'guests' ? '#2c5aa0' : '#ccc', flex: 1 }}>Guests Uploads</button>
+                <button onClick={() => setActiveTab('users')} style={{ background: activeTab === 'users' ? '#f39c12' : '#ccc', flex: 1 }}>Manage Guests Passwords</button>
             </div>
 
             {activeTab === 'images' && (
@@ -296,7 +297,7 @@ const AdminSection = ({
                   <div className="form-group" style={{ maxWidth: '400px', margin: '0 auto' }}>
                     <input 
                       type="file" 
-                      accept="image/*,.heic,.heif" 
+                      accept="image/*,video/*,.heic,.heif" 
                       multiple 
                       onChange={handleUpload} 
                       disabled={isUploading} 
@@ -311,7 +312,11 @@ const AdminSection = ({
                   <div className="admin-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
                     {adminImagesToShow.map(img => (
                       <div key={img} className="admin-item" style={{ position: 'relative' }}>
-                        <img src={img} style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '4px' }} alt="Admin" />
+                        {isVideoUrl(img) ? (
+                          <video src={img} style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '4px' }} />
+                        ) : (
+                          <img src={img} style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '4px' }} alt="Admin" />
+                        )}
                         <button onClick={() => onDeleteImage(img)} style={{ position: 'absolute', top: '5px', right: '5px', padding: '2px 6px', fontSize: '0.7rem', background: '#e74c3c' }}>Delete</button>
                       </div>
                     ))}
@@ -333,7 +338,11 @@ const AdminSection = ({
                 <div className="admin-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: '1rem', marginTop: '1.5rem' }}>
                     {guestImagesToShow.map(img => (
                       <div key={img.url} className="admin-item" style={{ position: 'relative' }}>
-                        <img src={img.url} style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '4px' }} alt="Guest" />
+                        {isVideoUrl(img.url) ? (
+                          <video src={img.url} style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '4px' }} />
+                        ) : (
+                          <img src={img.url} style={{ width: '100%', height: '120px', objectFit: 'cover', borderRadius: '4px' }} alt="Guest" />
+                        )}
                         <button onClick={() => onDeleteGuestImage(img.url)} style={{ position: 'absolute', top: '5px', right: '5px', padding: '2px 6px', fontSize: '0.7rem', background: '#e74c3c' }}>Delete</button>
                         <div style={{ position: 'absolute', bottom: '0', left: '0', right: '0', background: 'rgba(255,255,255,0.8)', color: '#333', fontSize: '0.6rem', padding: '2px', textAlign: 'center' }}>
                           Owner: {img.owner}

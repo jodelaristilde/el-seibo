@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { isVideoUrl } from '../utils/fileUtils';
 
 interface ImagesSectionProps {
   uploadedImages: string[];
@@ -26,7 +27,11 @@ const ImagesSection = ({ uploadedImages }: ImagesSectionProps) => {
           {/* Uploaded Images */}
           {uploadedImages.map((img, index) => (
             <div key={index} className="gallery-item" onClick={() => openModal(img)} style={{ cursor: 'pointer' }}>
-              <img src={img} alt={`Gallery Image ${index}`} />
+              {isVideoUrl(img) ? (
+                <video src={img} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <img src={img} alt={`Gallery Image ${index}`} />
+              )}
             </div>
           ))}
 
@@ -43,7 +48,11 @@ const ImagesSection = ({ uploadedImages }: ImagesSectionProps) => {
         <div className="modal-overlay" onClick={closeModal}>
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <button className="modal-close" onClick={closeModal}>&times;</button>
-            <img src={selectedImage} alt="Fullscreen View" />
+            {isVideoUrl(selectedImage) ? (
+              <video src={selectedImage} controls autoPlay style={{ maxWidth: '100%', maxHeight: '90vh' }} />
+            ) : (
+              <img src={selectedImage} alt="Fullscreen View" />
+            )}
           </div>
         </div>
       )}
