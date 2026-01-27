@@ -27,8 +27,8 @@ const ContactSection = ({ isAdmin }: { isAdmin: boolean }) => (
           tagName="h3" 
           style={{ color: '#2c5aa0', marginBottom: '1rem' }}
         />
-        <p><strong>Email:</strong> <EditableText contentKey="contact_email" defaultText="info@elseibomission.com" isAdmin={isAdmin} tagName="span" /></p>
-        <p><strong>Location:</strong> <EditableText contentKey="contact_location" defaultText="El Seibo, Dominican Republic" isAdmin={isAdmin} tagName="span" /></p>
+        <p><strong>Email:</strong> <EditableText contentKey="contact_email" defaultText="info@elseibomission.com" isAdmin={isAdmin} tagName="span" style={{ display: 'inline-block', marginLeft: '0.5rem' }} /></p>
+        <p><strong>Location:</strong> <EditableText contentKey="contact_location" defaultText="El Seibo, Dominican Republic" isAdmin={isAdmin} tagName="span" style={{ display: 'inline-block', marginLeft: '0.5rem' }} /></p>
         <EditableText 
           contentKey="contact_text" 
           defaultText="Whether you're interested in joining a mission trip, making a donation, or learning more about our work, we welcome your questions and interest in serving alongside us." 
