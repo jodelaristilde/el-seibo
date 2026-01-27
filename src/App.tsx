@@ -19,7 +19,7 @@ export interface GuestImage {
 }
 
 const Logo = () => (
-  <img src="/logo.png" alt="El Seibo Mission Logo" className="logo" style={{ height: '50px', width: 'auto' }} />
+  <img src="/logo.png" alt="El Seibo Mission Logo" className="logo" style={{ height: '120px', width: 'auto' }} />
 );
 
 function App() {
