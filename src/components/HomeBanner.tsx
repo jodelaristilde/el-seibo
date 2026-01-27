@@ -1,5 +1,7 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useCallback } from 'react';
+import Cropper from 'react-easy-crop';
 import { useContent } from './ContentProvider';
+import { getCroppedImg } from '../utils/cropUtils';
 
 interface HomeBannerProps {
   isAdmin: boolean;
@@ -10,6 +12,14 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
   const [isUploading, setIsUploading] = useState<number | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [activeSlot, setActiveSlot] = useState<number | null>(null);
+  const [image, setImage] = useState<string | null>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
+  const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
 
   const handleImageClick = (slot: number) => {
     if (!isAdmin) return;
@@ -17,21 +27,33 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
     fileInputRef.current?.click();
   };
 
-  const onFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (activeSlot === null || !e.target.files || e.target.files.length === 0) return;
     
     const file = e.target.files[0];
-    setIsUploading(activeSlot);
+    const reader = new FileReader();
+    reader.addEventListener('load', () => {
+      setImage(reader.result as string);
+    });
+    reader.readAsDataURL(file);
+  };
 
+  const handleSave = async () => {
+    if (!image || !croppedAreaPixels || activeSlot === null) return;
+    
+    setIsUploading(activeSlot);
     try {
-      const contentType = file.type || 'image/jpeg';
-      const filename = `home_banner_${activeSlot}.jpg`;
+      const croppedImageBlob = await getCroppedImg(image, croppedAreaPixels);
+      if (!croppedImageBlob) throw new Error('Failed to crop image');
+
+      const file = new File([croppedImageBlob], `home_banner_${activeSlot}.jpg`, { type: 'image/jpeg' });
+      const contentType = 'image/jpeg';
 
       // 1. Get Presigned URL
       const presignedRes = await fetch('/api/generate-presigned-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename, contentType, type: 'site_asset' }),
+        body: JSON.stringify({ filename: file.name, contentType, type: 'site_asset' }),
       });
 
       if (!presignedRes.ok) throw new Error('Failed to get upload URL');
@@ -60,6 +82,7 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
 
       // 4. Update Site Content
       await updateContent(`home_banner_image_${activeSlot}`, publicUrl);
+      setImage(null);
     } catch (error) {
       console.error('Failed to upload home banner image:', error);
       alert('Failed to upload image. Please try again.');
@@ -67,6 +90,11 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
       setIsUploading(null);
       setActiveSlot(null);
     }
+  };
+
+  const handleCancel = () => {
+    setImage(null);
+    setActiveSlot(null);
   };
 
   const handleDelete = async (e: React.MouseEvent, slot: number) => {
@@ -213,8 +241,72 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
         style={{ display: 'none' }} 
         accept="image/*" 
       />
+
+      {image && (
+        <div className="modal-overlay" style={{ zIndex: 10000, cursor: 'default' }}>
+          <div className="modal-content" style={{ 
+            background: 'white', 
+            width: '90%', 
+            maxWidth: '600px', 
+            height: 'auto', 
+            maxHeight: '90vh',
+            padding: '2rem',
+            borderRadius: '12px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '1.5rem',
+            boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+          }}>
+            <h3 style={{ margin: 0, color: '#2c5aa0', textAlign: 'center' }}>Crop Banner Image</h3>
+            
+            <div style={{ position: 'relative', width: '100%', height: '300px', background: '#333', borderRadius: '8px', overflow: 'hidden' }}>
+              <Cropper
+                image={image}
+                crop={crop}
+                zoom={zoom}
+                aspect={16 / 9}
+                onCropChange={setCrop}
+                onCropComplete={onCropComplete}
+                onZoomChange={setZoom}
+              />
+            </div>
+
+            <div style={{ padding: '0 1rem' }}>
+              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#666' }}>Zoom</label>
+              <input
+                type="range"
+                value={zoom}
+                min={1}
+                max={3}
+                step={0.1}
+                aria-labelledby="Zoom"
+                onChange={(e) => setZoom(Number(e.target.value))}
+                style={{ width: '100%' }}
+              />
+            </div>
+
+            <div className="edit-controls" style={{ marginTop: '0.5rem' }}>
+              <button 
+                className="cancel-btn" 
+                onClick={handleCancel}
+                disabled={isUploading !== null}
+              >
+                Cancel
+              </button>
+              <button 
+                className="save-btn" 
+                onClick={handleSave}
+                disabled={isUploading !== null}
+              >
+                {isUploading !== null ? 'Saving...' : 'Save Image'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
 
 export default HomeBanner;
+
