@@ -9,9 +9,23 @@ interface EditableImageProps {
   isAdmin: boolean;
   className?: string;
   style?: React.CSSProperties;
+  aspect?: number;
+  cropShape?: 'rect' | 'round';
+  imageStyle?: React.CSSProperties;
+  innerClassName?: string;
 }
 
-const EditableImage = ({ contentKey, defaultIcon, isAdmin, className, style }: EditableImageProps) => {
+const EditableImage = ({ 
+  contentKey, 
+  defaultIcon, 
+  isAdmin, 
+  className, 
+  style,
+  aspect = 1,
+  cropShape = 'round',
+  imageStyle,
+  innerClassName = 'sponsor-logo'
+}: EditableImageProps) => {
   const { content, updateContent } = useContent();
   const [isEditing, setIsEditing] = useState(false);
   const [image, setImage] = useState<string | null>(null);
@@ -110,12 +124,18 @@ const EditableImage = ({ contentKey, defaultIcon, isAdmin, className, style }: E
       className={`editable-container ${isAdmin ? 'admin-editable' : ''} ${className || ''}`}
       style={{ ...style, position: 'relative' }}
     >
-      <div className="sponsor-logo" style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      <div className={innerClassName} style={{ overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', ...style }}>
         {currentImageUrl ? (
           <img 
             src={currentImageUrl} 
-            alt="Sponsor Icon" 
-            style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} 
+            alt="Editable Content" 
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'cover', 
+              borderRadius: cropShape === 'round' ? '50%' : '0',
+              ...imageStyle 
+            }} 
           />
         ) : (
           <span style={{ fontSize: '3rem' }}>{defaultIcon}</span>
@@ -163,8 +183,8 @@ const EditableImage = ({ contentKey, defaultIcon, isAdmin, className, style }: E
                 image={image || ''}
                 crop={crop}
                 zoom={zoom}
-                aspect={1}
-                cropShape="round"
+                aspect={aspect}
+                cropShape={cropShape}
                 showGrid={false}
                 onCropChange={setCrop}
                 onCropComplete={onCropComplete}

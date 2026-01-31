@@ -9,8 +9,9 @@ import SponsorsSection from './components/SponsorsSection';
 import DonateSection from './components/DonateSection';
 import ContactSection from './components/ContactSection';
 import AdminSection from './components/AdminSection';
-import { ContentProvider } from './components/ContentProvider';
+import { useContent } from './components/ContentProvider';
 import EditableText from './components/EditableText';
+import EditableImage from './components/EditableImage';
 
 export interface GuestImage {
   url: string;
@@ -18,11 +19,10 @@ export interface GuestImage {
   owner: string;
 }
 
-const Logo = () => (
-  <img src="/logo.png" alt="El Seibo Mission Logo" className="logo" style={{ height: '120px', width: 'auto' }} />
-);
+// Static Logo helper removed in favor of EditableImage
 
 function App() {
+  const { content } = useContent();
   const [activeSection, setActiveSection] = useState('home');
   const [isAdminLoggedIn, setIsAdminLoggedIn] = useState(() => {
     return localStorage.getItem('isAdminLoggedIn') === 'true';
@@ -42,6 +42,20 @@ function App() {
   useEffect(() => {
     localStorage.setItem('isAdminLoggedIn', String(isAdminLoggedIn));
   }, [isAdminLoggedIn]);
+
+  // Sync favicon with site logo
+  useEffect(() => {
+    const siteLogo = content.site_logo || '/logo.png';
+    const link: HTMLLinkElement | null = document.querySelector("link[rel~='icon']");
+    if (link) {
+      link.href = siteLogo;
+    } else {
+      const newLink = document.createElement('link');
+      newLink.rel = 'icon';
+      newLink.href = siteLogo;
+      document.head.appendChild(newLink);
+    }
+  }, [content.site_logo]);
 
   useEffect(() => {
     fetchAdminImages();
@@ -95,13 +109,20 @@ function App() {
   };
 
   return (
-    <ContentProvider>
-      <div className="app-container">
+    <div className="app-container">
       <header>
         <div className="container">
           <div className="header-content">
             <div className="logo-container">
-              <Logo />
+              <EditableImage 
+                contentKey="site_logo" 
+                defaultIcon="🏥" 
+                isAdmin={isAdminLoggedIn} 
+                aspect={1}
+                cropShape="rect"
+                innerClassName="logo"
+                imageStyle={{ borderRadius: '8px', objectFit: 'contain' }}
+              />
               <div className="header-text">
                 <EditableText 
                   contentKey="site_title" 
@@ -193,7 +214,6 @@ function App() {
         </div>
       </footer>
     </div>
-    </ContentProvider>
   );
 }
 
