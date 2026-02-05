@@ -12,6 +12,7 @@ import AdminSection from './components/AdminSection';
 import { useContent } from './components/ContentProvider';
 import EditableText from './components/EditableText';
 import EditableImage from './components/EditableImage';
+import VolunteerSection from './components/VolunteerSection';
 
 export interface GuestImage {
   url: string;
@@ -116,7 +117,7 @@ function App() {
             <div className="logo-container">
               <EditableImage 
                 contentKey="site_logo" 
-                defaultIcon="🏥" 
+                defaultImage="/logo.png"
                 isAdmin={isAdminLoggedIn} 
                 aspect={1}
                 cropShape="rect"
@@ -157,6 +158,7 @@ function App() {
             <li><a className={activeSection === 'about' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('about')}>About</a></li>
             <li><a className={activeSection === 'services' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('services')}>Services</a></li>
             <li><a className={activeSection === 'images' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('images')}>Images</a></li>
+            <li><a className={activeSection === 'volunteer' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('volunteer')}>Volunteer Stories</a></li>
             <li><a className={activeSection === 'guest-upload' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('guest-upload')}>Guests Upload</a></li>
             <li><a className={activeSection === 'sponsors' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('sponsors')}>Sponsors</a></li>
             <li><a className={activeSection === 'donate' ? 'nav-link active' : 'nav-link'} onClick={() => setActiveSection('donate')}>Donate</a></li>
@@ -171,6 +173,7 @@ function App() {
         {activeSection === 'about' && <AboutSection isAdmin={isAdminLoggedIn} />}
         {activeSection === 'services' && <ServicesSection isAdmin={isAdminLoggedIn} />}
         {activeSection === 'images' && <ImagesSection uploadedImages={adminImages} />}
+        {activeSection === 'volunteer' && <VolunteerSection isAdmin={isAdminLoggedIn} />}
         {activeSection === 'guest-upload' && (
           <GuestUploadSection 
             onAddImages={handleAddGuestImages} 

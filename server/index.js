@@ -41,6 +41,7 @@ const CACHE_KEYS = {
   GUEST_IMAGES: 'cache:guest_images',
   GUEST_IMAGES_LIST: 'guest_images_list', // Atomic list key
   SITE_CONTENT: 'site_content',
+  VOLUNTEER_VIDEOS: 'volunteer_videos',
 };
 const CACHE_TTL = 3600; // 1 hour in seconds
 
@@ -435,6 +436,59 @@ app.post('/api/login', async (req, res) => {
     if (admin) return res.json({ success: true, user: { username: admin.username, role: 'admin' } });
   }
   res.status(401).json({ success: false, error: 'Invalid credentials' });
+});
+
+// Volunteer Videos Routes
+app.get('/api/videos', async (req, res) => {
+  try {
+    const videos = await getData(CACHE_KEYS.VOLUNTEER_VIDEOS);
+    const list = Array.isArray(videos) ? videos : [];
+    res.json(list);
+  } catch (error) {
+    console.error('Failed to get videos:', error);
+    res.status(500).json({ error: 'Failed to get videos' });
+  }
+});
+
+app.post('/api/videos', async (req, res) => {
+  const { url, title } = req.body;
+  if (!url || !title) return res.status(400).json({ error: 'URL and Title are required' });
+
+  try {
+    const videos = await getData(CACHE_KEYS.VOLUNTEER_VIDEOS);
+    const list = Array.isArray(videos) ? videos : [];
+    
+    const newVideo = {
+      id: uuidv4(),
+      url,
+      title,
+      addedAt: new Date().toISOString()
+    };
+    
+    list.unshift(newVideo); // Add to top
+    await saveData(CACHE_KEYS.VOLUNTEER_VIDEOS, list);
+    
+    res.json({ success: true, video: newVideo });
+  } catch (error) {
+    console.error('Failed to add video:', error);
+    res.status(500).json({ error: 'Failed to add video' });
+  }
+});
+
+app.delete('/api/videos/:id', async (req, res) => {
+  const { id } = req.params;
+  try {
+    const videos = await getData(CACHE_KEYS.VOLUNTEER_VIDEOS);
+    const list = Array.isArray(videos) ? videos : [];
+    
+    const newList = list.filter(v => v.id !== id);
+    await saveData(CACHE_KEYS.VOLUNTEER_VIDEOS, newList);
+    
+    res.json({ success: true });
+  } catch (error) {
+    console.error('Failed to delete video:', error);
+    res.status(500).json({ error: 'Failed to delete video' });
+  }
 });
 
 // Stripe Donation Checkout Route

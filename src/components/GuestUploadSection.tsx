@@ -361,8 +361,83 @@ const GuestUploadSection = ({ onAddImages, onDeleteImage, onRefresh, guestImages
       {/* Image Lightbox */}
       {selectedImage && (
         <div className="modal-overlay" onClick={closeLightbox}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ position: 'relative' }}>
             <button className="modal-close" onClick={closeLightbox}>&times;</button>
+            
+            {/* Navigation Arrows */}
+            {guestImages.length > 1 && (
+              <>
+                <button 
+                  className="nav-btn prev-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const currentIndex = guestImages.findIndex(img => img.url === selectedImage);
+                    if (currentIndex !== -1) {
+                      const prevIndex = (currentIndex - 1 + guestImages.length) % guestImages.length;
+                      setSelectedImage(guestImages[prevIndex].url);
+                    }
+                  }}
+                  style={{
+                    position: 'absolute',
+                    left: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.4)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+                  aria-label="Previous Image"
+                >
+                  &#10094;
+                </button>
+                <button 
+                  className="nav-btn next-btn" 
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    const currentIndex = guestImages.findIndex(img => img.url === selectedImage);
+                    if (currentIndex !== -1) {
+                      const nextIndex = (currentIndex + 1) % guestImages.length;
+                      setSelectedImage(guestImages[nextIndex].url);
+                    }
+                  }}
+                  style={{
+                    position: 'absolute',
+                    right: '10px',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'rgba(255, 255, 255, 0.2)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '50%',
+                    width: '40px',
+                    height: '40px',
+                    fontSize: '24px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 10
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.4)'}
+                  onMouseOut={(e) => e.currentTarget.style.background = 'rgba(255, 255, 255, 0.2)'}
+                  aria-label="Next Image"
+                >
+                  &#10095;
+                </button>
+              </>
+            )}
+
             {isVideoUrl(selectedImage) ? (
               <video src={selectedImage} controls autoPlay style={{ maxWidth: '100%', maxHeight: '90vh' }} />
             ) : (

@@ -5,7 +5,8 @@ import { getCroppedImg } from '../utils/cropUtils';
 
 interface EditableImageProps {
   contentKey: string;
-  defaultIcon: string;
+  defaultIcon?: string; // Made optional
+  defaultImage?: string; // New prop for image fallback
   isAdmin: boolean;
   className?: string;
   style?: React.CSSProperties;
@@ -18,6 +19,7 @@ interface EditableImageProps {
 const EditableImage = ({ 
   contentKey, 
   defaultIcon, 
+  defaultImage,
   isAdmin, 
   className, 
   style,
@@ -133,6 +135,18 @@ const EditableImage = ({
               width: '100%', 
               height: '100%', 
               objectFit: 'cover', 
+              borderRadius: cropShape === 'round' ? '50%' : '0',
+              ...imageStyle 
+            }} 
+          />
+        ) : defaultImage ? (
+           <img 
+            src={defaultImage} 
+            alt="Default Content" 
+            style={{ 
+              width: '100%', 
+              height: '100%', 
+              objectFit: 'contain', 
               borderRadius: cropShape === 'round' ? '50%' : '0',
               ...imageStyle 
             }} 
