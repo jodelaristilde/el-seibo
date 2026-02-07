@@ -55,7 +55,7 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
     
     const interval = setInterval(() => {
       setCurrentIndex(prev => (prev + 1) % images.length);
-    }, 5000);
+    }, 3000);
 
     return () => clearInterval(interval);
   }, [images.length, isEditing, cropImage]);
@@ -221,8 +221,9 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
                    onClick={handlePrev}
                    style={{
                      position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)',
-                     background: 'rgba(0,0,0,0.3)', color: 'white', border: 'none', borderRadius: '50%',
-                     width: '40px', height: '40px', cursor: 'pointer', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                     background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%',
+                     width: '44px', height: '44px', cursor: 'pointer', fontSize: '1.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                     zIndex: 10
                    }}
                  >
                    ‹
@@ -231,8 +232,9 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
                    onClick={handleNext}
                    style={{
                      position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)',
-                     background: 'rgba(0,0,0,0.3)', color: 'white', border: 'none', borderRadius: '50%',
-                     width: '40px', height: '40px', cursor: 'pointer', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                     background: 'rgba(0,0,0,0.5)', color: 'white', border: 'none', borderRadius: '50%',
+                     width: '44px', height: '44px', cursor: 'pointer', fontSize: '1.8rem', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                     zIndex: 10
                    }}
                  >
                    ›
@@ -242,7 +244,7 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
 
             {/* Dots */}
             {images.length > 1 && (
-              <div style={{ position: 'absolute', bottom: '1rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '0.5rem' }}>
+              <div style={{ position: 'absolute', bottom: '1rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '0.5rem', zIndex: 10 }}>
                 {images.map((_, idx) => (
                   <button
                     key={idx}
