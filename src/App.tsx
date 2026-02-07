@@ -150,6 +150,12 @@ function App() {
           </div>
         </div>
       </header>
+      
+      {/* Mobile Menu Backdrop */}
+      <div 
+        className={`menu-backdrop ${isMenuOpen ? 'visible' : ''}`} 
+        onClick={() => setIsMenuOpen(false)}
+      />
 
       <nav className={isMenuOpen ? 'nav-open' : ''}>
         <div className="container">

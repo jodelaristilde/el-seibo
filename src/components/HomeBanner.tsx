@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import Cropper from 'react-easy-crop';
 import { useContent } from './ContentProvider';
 import { getCroppedImg } from '../utils/cropUtils';
@@ -9,44 +9,104 @@ interface HomeBannerProps {
 
 const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
   const { content, updateContent } = useContent();
-  const [isUploading, setIsUploading] = useState<number | null>(null);
+  const [images, setImages] = useState<string[]>([]);
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // Crop state
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [activeSlot, setActiveSlot] = useState<number | null>(null);
-  const [image, setImage] = useState<string | null>(null);
+  const [cropImage, setCropImage] = useState<string | null>(null);
   const [crop, setCrop] = useState({ x: 0, y: 0 });
   const [zoom, setZoom] = useState(1);
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
+
+  // Swipe state
+  const [touchStart, setTouchStart] = useState(0);
+  const [touchEnd, setTouchEnd] = useState(0);
+
+  // Load images from content
+  useEffect(() => {
+    let loadedImages: string[] = [];
+    if (content.home_banner_images) {
+      try {
+        loadedImages = JSON.parse(content.home_banner_images);
+      } catch (e) {
+        console.error("Failed to parse home_banner_images", e);
+      }
+    }
+    
+    // Fallback to legacy keys if array is empty
+    if (loadedImages.length === 0) {
+      const legacy = [
+        content.home_banner_image_1,
+        content.home_banner_image_2,
+        content.home_banner_image_3
+      ].filter(Boolean);
+      if (legacy.length > 0) loadedImages = legacy;
+    }
+
+    setImages(loadedImages);
+  }, [content]);
+
+  // Auto-rotate
+  useEffect(() => {
+    if (images.length <= 1 || isEditing || cropImage) return;
+    
+    const interval = setInterval(() => {
+      setCurrentIndex(prev => (prev + 1) % images.length);
+    }, 5000);
+
+    return () => clearInterval(interval);
+  }, [images.length, isEditing, cropImage]);
 
   const onCropComplete = useCallback((_croppedArea: any, croppedAreaPixels: any) => {
     setCroppedAreaPixels(croppedAreaPixels);
   }, []);
 
-  const handleImageClick = (slot: number) => {
-    if (!isAdmin) return;
-    setActiveSlot(slot);
-    fileInputRef.current?.click();
+  const handleNext = useCallback(() => {
+    setCurrentIndex(prev => (prev + 1) % images.length);
+  }, [images.length]);
+
+  const handlePrev = useCallback(() => {
+    setCurrentIndex(prev => (prev - 1 + images.length) % images.length);
+  }, [images.length]);
+
+  // Swipe handlers
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStart(e.targetTouches[0].clientX);
+  const handleTouchMove = (e: React.TouchEvent) => setTouchEnd(e.targetTouches[0].clientX);
+  const handleTouchEnd = () => {
+    if (!touchStart || !touchEnd) return;
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > 50;
+    const isRightSwipe = distance < -50;
+
+    if (isLeftSwipe) handleNext();
+    if (isRightSwipe) handlePrev();
+    
+    setTouchStart(0);
+    setTouchEnd(0);
   };
 
-  const onFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (activeSlot === null || !e.target.files || e.target.files.length === 0) return;
-    
+  // Image Upload Logic
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
     const file = e.target.files[0];
     const reader = new FileReader();
-    reader.addEventListener('load', () => {
-      setImage(reader.result as string);
-    });
+    reader.onload = () => setCropImage(reader.result as string);
     reader.readAsDataURL(file);
   };
 
-  const handleSave = async () => {
-    if (!image || !croppedAreaPixels || activeSlot === null) return;
+  const saveCroppedImage = async () => {
+    if (!cropImage || !croppedAreaPixels) return;
     
-    setIsUploading(activeSlot);
+    setIsUploading(true);
     try {
-      const croppedImageBlob = await getCroppedImg(image, croppedAreaPixels);
+      const croppedImageBlob = await getCroppedImg(cropImage, croppedAreaPixels);
       if (!croppedImageBlob) throw new Error('Failed to crop image');
 
-      const file = new File([croppedImageBlob], `home_banner_${activeSlot}.jpg`, { type: 'image/jpeg' });
+      const fileName = `banner_${Date.now()}.jpg`;
+      const file = new File([croppedImageBlob], fileName, { type: 'image/jpeg' });
       const contentType = 'image/jpeg';
 
       // 1. Get Presigned URL
@@ -80,188 +140,197 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
 
       if (!finalizeRes.ok) throw new Error('Finalization failed');
 
-      // 4. Update Site Content
-      await updateContent(`home_banner_image_${activeSlot}`, publicUrl);
-      setImage(null);
+      // 4. Update Content
+      const newImages = [...images, publicUrl];
+      await updateContent('home_banner_images', JSON.stringify(newImages));
+      setImages(newImages);
+      setCropImage(null);
+      setCurrentIndex(newImages.length - 1); // Switch to new image
+      
     } catch (error) {
-      console.error('Failed to upload home banner image:', error);
+      console.error('Failed to upload banner:', error);
       alert('Failed to upload image. Please try again.');
     } finally {
-      setIsUploading(null);
-      setActiveSlot(null);
+      setIsUploading(false);
     }
   };
 
-  const handleCancel = () => {
-    setImage(null);
-    setActiveSlot(null);
-  };
-
-  const handleDelete = async (e: React.MouseEvent, slot: number) => {
-    e.stopPropagation();
-    if (!isAdmin) return;
-    if (window.confirm('Are you sure you want to remove this image?')) {
-      try {
-        await updateContent(`home_banner_image_${slot}`, '');
-      } catch (error) {
-        console.error('Failed to delete home banner image:', error);
-      }
+  const deleteImage = async (indexToDelete: number) => {
+    if (!window.confirm('Are you sure you want to remove this image?')) return;
+    
+    const newImages = images.filter((_, idx) => idx !== indexToDelete);
+    try {
+       await updateContent('home_banner_images', JSON.stringify(newImages));
+       setImages(newImages);
+       if (currentIndex >= newImages.length) setCurrentIndex(Math.max(0, newImages.length - 1));
+    } catch (error) {
+      console.error('Failed to update images:', error);
     }
   };
 
-  const images = [
-    content['home_banner_image_1'],
-    content['home_banner_image_2'],
-    content['home_banner_image_3'],
-  ].filter(Boolean);
-
-  // If no images and not admin, don't show anything
   if (images.length === 0 && !isAdmin) return null;
 
   return (
-    <div className="home-banner-container" style={{ 
-      background: 'white', 
-      padding: '2rem', 
-      borderRadius: '12px', 
-      boxShadow: '0 4px 20px rgba(0,0,0,0.08)',
-      margin: '2rem auto',
-      maxWidth: '1000px',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '1.5rem',
-      alignItems: 'center'
-    }}>
-      <div className="home-banner-grid" style={{ 
-        display: 'grid', 
-        gridTemplateColumns: `repeat(${Math.max(1, isAdmin ? 3 : images.length)}, 1fr)`,
-        gap: '1.5rem',
-        width: '100%'
-      }}>
-        {[1, 2, 3].map((slot) => {
-          const imageUrl = content[`home_banner_image_${slot}`];
-          if (!isAdmin && !imageUrl) return null;
+    <div className="home-banner-container" style={{ position: 'relative', width: '100%', maxWidth: '1200px', margin: '2rem auto', overflow: 'hidden' }}>
+      
+      {/* Admin Controls */}
+      {isAdmin && (
+        <div style={{ marginBottom: '1rem', textAlign: 'center' }}>
+          <button 
+            onClick={() => setIsEditing(true)}
+            style={{
+              background: '#2c5aa0',
+              color: 'white',
+              border: 'none',
+              padding: '0.5rem 1rem',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              zIndex: 10
+            }}
+          >
+            Manage Banner Images ({images.length}/4)
+          </button>
+        </div>
+      )}
 
-          return (
-            <div 
-              key={slot}
-              onClick={() => handleImageClick(slot)}
+      {/* Carousel */}
+      <div 
+        className="carousel-wrapper"
+        onTouchStart={handleTouchStart}
+        onTouchMove={handleTouchMove}
+        onTouchEnd={handleTouchEnd}
+        style={{ position: 'relative', borderRadius: '12px', overflow: 'hidden', aspectRatio: '16/9', background: '#f0f0f0' }}
+      >
+        {images.length > 0 ? (
+          <>
+            <img 
+              src={images[currentIndex]} 
+              alt={`Banner ${currentIndex + 1}`}
               style={{
-                aspectRatio: '16/9',
-                background: '#f8f9fa',
-                borderRadius: '8px',
-                overflow: 'hidden',
-                position: 'relative',
-                cursor: isAdmin ? 'pointer' : 'default',
-                border: isAdmin ? '2px dashed #ddd' : 'none',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center'
+                width: '100%',
+                height: '100%',
+                objectFit: 'cover',
+                transition: 'opacity 0.5s ease-in-out'
               }}
-            >
-              {imageUrl ? (
-                <>
-                  <img 
-                    src={imageUrl} 
-                    alt={`Banner ${slot}`} 
-                    style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+            />
+            
+            {/* Arrows */}
+            {images.length > 1 && (
+              <>
+                 <button 
+                   onClick={handlePrev}
+                   style={{
+                     position: 'absolute', left: '1rem', top: '50%', transform: 'translateY(-50%)',
+                     background: 'rgba(0,0,0,0.3)', color: 'white', border: 'none', borderRadius: '50%',
+                     width: '40px', height: '40px', cursor: 'pointer', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                   }}
+                 >
+                   ‹
+                 </button>
+                 <button 
+                   onClick={handleNext}
+                   style={{
+                     position: 'absolute', right: '1rem', top: '50%', transform: 'translateY(-50%)',
+                     background: 'rgba(0,0,0,0.3)', color: 'white', border: 'none', borderRadius: '50%',
+                     width: '40px', height: '40px', cursor: 'pointer', fontSize: '1.5rem', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                   }}
+                 >
+                   ›
+                 </button>
+              </>
+            )}
+
+            {/* Dots */}
+            {images.length > 1 && (
+              <div style={{ position: 'absolute', bottom: '1rem', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '0.5rem' }}>
+                {images.map((_, idx) => (
+                  <button
+                    key={idx}
+                    onClick={() => setCurrentIndex(idx)}
+                    style={{
+                      width: '10px', height: '10px', borderRadius: '50%',
+                      background: idx === currentIndex ? 'white' : 'rgba(255,255,255,0.5)',
+                      border: 'none', cursor: 'pointer', padding: 0
+                    }}
                   />
-                  {isAdmin && (
-                    <button
-                      onClick={(e) => handleDelete(e, slot)}
-                      style={{
-                        position: 'absolute',
-                        top: '5px',
-                        right: '5px',
-                        background: 'rgba(231, 76, 60, 0.9)',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '50%',
-                        width: '24px',
-                        height: '24px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        cursor: 'pointer',
-                        fontSize: '12px',
-                        zIndex: 5
-                      }}
-                      title="Remove Image"
-                    >
-                      ✕
-                    </button>
-                  )}
-                </>
-              ) : isAdmin ? (
-                <div style={{ textAlign: 'center', color: '#999', padding: '1rem' }}>
-                  <span style={{ fontSize: '2rem', display: 'block' }}>+</span>
-                  <span style={{ fontSize: '0.8rem' }}>Add Image {slot}</span>
-                </div>
-              ) : null}
+                ))}
+              </div>
+            )}
+          </>
+        ) : (
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999' }}>
+            No images. click "Manage Banner Images" to add some.
+          </div>
+        )}
+      </div>
 
-              {isAdmin && (
-                <div className="edit-overlay" style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: 'rgba(0,0,0,0.3)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: 0,
-                  transition: 'opacity 0.2s',
-                  color: 'white',
-                  borderRadius: '8px'
-                }} onMouseEnter={(e) => (e.currentTarget.style.opacity = '1')} onMouseLeave={(e) => (e.currentTarget.style.opacity = '0')}>
-                  <span>Change Image</span>
-                </div>
-              )}
+      {/* Edit Modal */}
+      {isEditing && (
+        <div className="modal-overlay" style={{ zIndex: 2000 }}>
+          <div className="modal-content" style={{ flexDirection: 'column', background: 'white', width: '90%', maxWidth: '600px', height: 'auto', maxHeight: '90vh', padding: '2rem', borderRadius: '12px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', width: '100%' }}>
+              <h3 style={{ margin: 0, color: '#2c5aa0' }}>Manage Banners</h3>
+              <button onClick={() => setIsEditing(false)} style={{ background: 'transparent', border: 'none', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+            </div>
 
-
-              {isUploading === slot && (
-                <div style={{
-                  position: 'absolute',
-                  background: 'rgba(255,255,255,0.8)',
-                  top: 0, left: 0, right: 0, bottom: 0,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  zIndex: 10
-                }}>
-                  <span style={{ fontSize: '0.9rem', color: '#2c5aa0', fontWeight: 'bold' }}>Uploading...</span>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: '1rem', marginBottom: '2rem', width: '100%' }}>
+              {images.map((img, idx) => (
+                <div key={idx} style={{ position: 'relative', aspectRatio: '16/9' }}>
+                  <img src={img} alt={`Thumbnail ${idx}`} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} />
+                  <button 
+                    onClick={() => deleteImage(idx)}
+                    style={{
+                      position: 'absolute', top: -5, right: -5, background: '#e74c3c', color: 'white',
+                      border: 'none', borderRadius: '50%', width: '20px', height: '20px', cursor: 'pointer',
+                      fontSize: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center'
+                    }}
+                  >
+                    ✕
+                  </button>
                 </div>
+              ))}
+              {images.length < 4 && (
+                <button 
+                  onClick={() => fileInputRef.current?.click()}
+                  style={{
+                    border: '2px dashed #ccc', borderRadius: '4px', background: 'transparent',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer',
+                    fontSize: '2rem', color: '#ccc', aspectRatio: '16/9'
+                  }}
+                >
+                  +
+                </button>
               )}
             </div>
-          );
-        })}
-      </div>
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        onChange={onFileChange} 
-        style={{ display: 'none' }} 
-        accept="image/*" 
-      />
+            
+            <input 
+              type="file" 
+              ref={fileInputRef} 
+              onChange={handleFileChange} 
+              style={{ display: 'none' }} 
+              accept="image/*" 
+            />
+            
+            <div style={{ textAlign: 'right' }}>
+              <button className="cancel-btn" onClick={() => setIsEditing(false)}>Done</button>
+            </div>
+          </div>
+        </div>
+      )}
 
-      {image && (
-        <div className="modal-overlay" style={{ zIndex: 10000, cursor: 'default' }}>
-          <div className="modal-content" style={{ 
-            background: 'white', 
-            width: '90%', 
-            maxWidth: '600px', 
-            height: 'auto', 
-            maxHeight: '90vh',
-            padding: '2rem',
-            borderRadius: '12px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '1.5rem',
-            boxShadow: '0 10px 40px rgba(0,0,0,0.3)'
+      {/* Cropper Modal */}
+      {cropImage && (
+        <div className="modal-overlay" style={{ zIndex: 3000 }}>
+           <div className="modal-content" style={{ 
+            background: 'white', width: '90%', maxWidth: '600px', 
+            height: 'auto', maxHeight: '90vh', padding: '2rem', 
+            borderRadius: '12px', display: 'flex', flexDirection: 'column', gap: '1.5rem'
           }}>
             <h3 style={{ margin: 0, color: '#2c5aa0', textAlign: 'center' }}>Crop Banner Image</h3>
             
             <div style={{ position: 'relative', width: '100%', height: '300px', background: '#333', borderRadius: '8px', overflow: 'hidden' }}>
               <Cropper
-                image={image}
+                image={cropImage}
                 crop={crop}
                 zoom={zoom}
                 aspect={16 / 9}
@@ -272,33 +341,32 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
             </div>
 
             <div style={{ padding: '0 1rem' }}>
-              <label style={{ display: 'block', marginBottom: '0.5rem', fontSize: '0.9rem', color: '#666' }}>Zoom</label>
+              <label style={{ display: 'block', marginBottom: '0.5rem' }}>Zoom</label>
               <input
                 type="range"
                 value={zoom}
                 min={1}
                 max={3}
                 step={0.1}
-                aria-labelledby="Zoom"
                 onChange={(e) => setZoom(Number(e.target.value))}
                 style={{ width: '100%' }}
               />
             </div>
 
-            <div className="edit-controls" style={{ marginTop: '0.5rem' }}>
+            <div className="edit-controls">
               <button 
                 className="cancel-btn" 
-                onClick={handleCancel}
-                disabled={isUploading !== null}
+                onClick={() => setCropImage(null)}
+                disabled={isUploading}
               >
                 Cancel
               </button>
               <button 
                 className="save-btn" 
-                onClick={handleSave}
-                disabled={isUploading !== null}
+                onClick={saveCroppedImage}
+                disabled={isUploading}
               >
-                {isUploading !== null ? 'Saving...' : 'Save Image'}
+                {isUploading ? 'Uploading...' : 'Save & Add'}
               </button>
             </div>
           </div>
@@ -309,4 +377,3 @@ const HomeBanner = ({ isAdmin }: HomeBannerProps) => {
 };
 
 export default HomeBanner;
-
